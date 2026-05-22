@@ -1,0 +1,356 @@
+/* Стили для цены на карточке */
+.price-badge {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 3;
+    background: rgba(46, 213, 115, 0.95);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 18px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Стили для кнопки заказа */
+.order-btn {
+    width: 100%;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #2ed573 0%, #26d07c 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(46, 213, 115, 0.3);
+    position: relative;
+    z-index: 2;
+}
+
+.order-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(46, 213, 115, 0.4);
+}
+
+.order-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+/* Модальное окно */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 10000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modal-content {
+    background-color: #1a1b1e;
+    padding: 40px;
+    border-radius: 16px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    animation: slideUp 0.3s ease;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="light"] .modal-content {
+    background-color: #ffffff;
+    color: #2c3e50;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    font-size: 32px;
+    font-weight: bold;
+    color: #888;
+    cursor: pointer;
+    transition: color 0.3s;
+    line-height: 1;
+}
+
+.modal-close:hover {
+    color: #ff6b6b;
+}
+
+.modal-content h2 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #ffffff;
+    font-size: 24px;
+}
+
+[data-theme="light"] .modal-content h2 {
+    color: #2c3e50;
+}
+
+.modal-content .product-info {
+    margin-bottom: 30px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+}
+
+[data-theme="light"] .modal-content .product-info {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.modal-content .product-info p {
+    margin: 5px 0;
+    color: #a0a0a0;
+}
+
+[data-theme="light"] .modal-content .product-info p {
+    color: #585858;
+}
+
+.modal-content .product-info .price {
+    font-size: 24px;
+    font-weight: bold;
+    color: #2ed573;
+    margin-top: 10px;
+}
+
+/* Форма заказа */
+.order-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    margin-bottom: 8px;
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+[data-theme="light"] .form-group label {
+    color: #2c3e50;
+}
+
+.form-group input,
+.form-group select {
+    padding: 12px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.07);
+    color: #ffffff;
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    transition: all 0.3s;
+}
+
+[data-theme="light"] .form-group input,
+[data-theme="light"] .form-group select {
+    background: rgba(0, 0, 0, 0.06);
+    border-color: rgba(0, 0, 0, 0.15);
+    color: #2c3e50;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #2ed573;
+    box-shadow: 0 0 0 3px rgba(46, 213, 115, 0.2);
+}
+
+.form-group input::placeholder {
+    color: #888;
+}
+
+.submit-btn {
+    padding: 14px 24px;
+    background: linear-gradient(135deg, #2ed573 0%, #26d07c 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(46, 213, 115, 0.3);
+    margin-top: 10px;
+}
+
+.submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(46, 213, 115, 0.4);
+}
+
+.submit-btn:active {
+    transform: translateY(0);
+}
+
+.submit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Модальное окно успеха */
+.success-content {
+    text-align: center;
+}
+
+.success-content .success-icon {
+    font-size: 64px;
+    color: #2ed573;
+    margin-bottom: 20px;
+}
+
+.success-content h2 {
+    color: #2ed573;
+    margin-bottom: 20px;
+}
+
+.success-content .qr-code {
+    margin: 30px 0;
+    padding: 20px;
+    background: white;
+    border-radius: 12px;
+    display: inline-block;
+}
+
+.success-content .qr-code img {
+    display: block;
+    max-width: 250px;
+    width: 100%;
+    height: auto;
+}
+
+.success-content .order-info {
+    margin: 20px 0;
+    padding: 20px;
+    background: rgba(46, 213, 115, 0.1);
+    border-radius: 12px;
+    border: 1px solid rgba(46, 213, 115, 0.3);
+}
+
+.success-content .order-info p {
+    margin: 10px 0;
+    color: #a0a0a0;
+}
+
+[data-theme="light"] .success-content .order-info p {
+    color: #585858;
+}
+
+.success-content .order-info strong {
+    color: #ffffff;
+    font-size: 18px;
+}
+
+[data-theme="light"] .success-content .order-info strong {
+    color: #2c3e50;
+}
+
+.success-content .instructions {
+    text-align: left;
+    margin-top: 30px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+}
+
+[data-theme="light"] .success-content .instructions {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.success-content .instructions h3 {
+    color: #ffffff;
+    margin-bottom: 15px;
+    font-size: 18px;
+}
+
+[data-theme="light"] .success-content .instructions h3 {
+    color: #2c3e50;
+}
+
+.success-content .instructions ol {
+    padding-left: 20px;
+    color: #a0a0a0;
+}
+
+[data-theme="light"] .success-content .instructions ol {
+    color: #585858;
+}
+
+.success-content .instructions li {
+    margin: 10px 0;
+}
+
+.close-success-btn {
+    margin-top: 30px;
+    padding: 14px 32px;
+    background: #2ed573;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.close-success-btn:hover {
+    background: #26d07c;
+    transform: translateY(-2px);
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .modal-content {
+        padding: 30px 20px;
+        width: 95%;
+    }
+
+    .modal-content h2 {
+        font-size: 20px;
+    }
+
+    .success-content .qr-code img {
+        max-width: 200px;
+    }
+}

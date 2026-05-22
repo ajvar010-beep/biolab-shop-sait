@@ -1,0 +1,307 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>Проектная биолаборатория</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		
+        <link rel="stylesheet" href="assets/css/main.css" />
+        <link rel="stylesheet" href="assets/css/shop.css" />
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.css" />
+		<noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
+
+        <!-- Model Viewer через jsDelivr (работает в РФ) -->
+        <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.3.0/dist/model-viewer.min.js"></script>
+
+        <!-- Inter font через jsDelivr (работает в РФ) -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@4.5.15/400.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@4.5.15/600.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@4.5.15/800.css">
+
+        <style>
+            /* --- ТЕМЫ САЙТА --- */
+            :root {
+                --bg-color: #1a1b1e; 
+                --text-color: #a0a0a0;
+                --heading-color: #ffffff;
+                --card-bg: rgba(255,255,255,0.05);
+            }
+            [data-theme="light"] {
+                --bg-color: #ffffff;
+                --text-color: #585858;
+                --heading-color: #2c3e50;
+                --card-bg: rgba(0,0,0,0.05);
+            }
+
+            body { font-family: 'Inter', sans-serif !important; background-color: var(--bg-color) !important; color: var(--text-color) !important; transition: background-color 0.5s, color 0.5s; }
+            h1, h2, h3, h4, h5, h6, #main > .inner > header h1 { font-family: 'Inter', sans-serif !important; color: var(--heading-color) !important; transition: color 0.5s; }
+            #main > .inner > header h1 { font-weight: 800; letter-spacing: -1px; }
+
+            /* --- РАЗМЕРЫ ШРИФТА --- */
+            html[data-fontsize="small"] body, html[data-fontsize="small"] p, html[data-fontsize="small"] a, html[data-fontsize="small"] li { font-size: 14px !important; }
+            html[data-fontsize="small"] h1 { font-size: 24px !important; }
+            html[data-fontsize="small"] h2 { font-size: 18px !important; }
+            html[data-fontsize="small"] .fancybox__caption { font-size: 14px !important; }
+
+            html[data-fontsize="normal"] body, html[data-fontsize="normal"] p, html[data-fontsize="normal"] a, html[data-fontsize="normal"] li { font-size: 18px !important; }
+            html[data-fontsize="normal"] h1 { font-size: 34px !important; }
+            html[data-fontsize="normal"] h2 { font-size: 22px !important; }
+            html[data-fontsize="normal"] .fancybox__caption { font-size: 18px !important; }
+
+            html[data-fontsize="large"] body, html[data-fontsize="large"] p, html[data-fontsize="large"] a, html[data-fontsize="large"] li { font-size: 24px !important; }
+            html[data-fontsize="large"] h1 { font-size: 46px !important; }
+            html[data-fontsize="large"] h2 { font-size: 30px !important; }
+            html[data-fontsize="large"] .fancybox__caption { font-size: 24px !important; }
+
+            p, a, li, h1, h2, h3, .fancybox__caption { transition: font-size 0.3s ease !important; }
+
+            /* --- МЕНЮ --- */
+            #menu { background-color: #111111 !important; color: #ffffff !important; }
+            #menu h2, #menu a, #menu .close { color: #ffffff !important; border-bottom-color: rgba(255,255,255,0.2) !important; }
+            #menu a:hover { color: #2ed573 !important; }
+
+            /* --- ПОИСК --- */
+            .search-wrapper {
+                display: block !important;
+                visibility: visible !important;
+                margin-bottom: 30px !important;
+                position: relative !important;
+                width: 100% !important;
+            }
+            #searchInput {
+                display: block !important;
+                visibility: visible !important;
+                width: 100% !important;
+                padding: 14px 20px 14px 48px !important;
+                font-family: 'Inter', sans-serif !important;
+                font-size: 16px !important;
+                border-radius: 12px !important;
+                border: 1px solid rgba(255,255,255,0.15) !important;
+                background: rgba(255,255,255,0.07) !important;
+                color: #ffffff !important;
+                outline: none !important;
+                box-sizing: border-box !important;
+                -webkit-appearance: none !important;
+                appearance: none !important;
+            }
+            [data-theme="light"] #searchInput {
+                background: rgba(0,0,0,0.06) !important;
+                border-color: rgba(0,0,0,0.15) !important;
+                color: #2c3e50 !important;
+            }
+            #searchInput::placeholder { color: #888 !important; }
+            #searchInput:focus {
+                border-color: #2ed573 !important;
+                box-shadow: 0 0 0 3px rgba(46, 213, 115, 0.2) !important;
+            }
+            .search-icon {
+                position: absolute !important;
+                left: 16px !important;
+                top: 50% !important;
+                transform: translateY(-50%) !important;
+                color: #888 !important;
+                pointer-events: none !important;
+            }
+            #searchEmptyMsg {
+                display: none;
+                text-align: center;
+                padding: 40px 0;
+                color: var(--text-color);
+                font-size: 16px;
+                opacity: 0.6;
+            }
+
+            /* --- СЕТКА КАРТОЧЕК --- */
+            /* ИСПРАВЛЕНИЕ 1: добавлен position: relative — без него фоновый span перекрывал ссылку */
+            .tiles { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)) !important; gap: 20px !important; }
+            .tiles article { position: relative !important; width: 100% !important; margin: 0 !important; border-radius: 8px !important; border: none !important; background-color: var(--card-bg) !important; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05) !important; transition: transform 0.4s ease, box-shadow 0.4s ease !important; overflow: hidden !important; min-height: 250px; }
+            
+            .size-wide { grid-column: span 2; }
+            .size-large { grid-column: span 2; grid-row: span 2; min-height: 400px; }
+
+            @media screen and (max-width: 736px) { .size-wide, .size-large { grid-column: span 1 !important; grid-row: span 1 !important; } }
+
+            .tiles article:hover, .tiles article:active { transform: translateY(-5px) scale(1.02) !important; box-shadow: 0 12px 25px rgba(0, 0, 0, 0.25) !important; z-index: 10; }
+            
+            .tiles article h2 { color: #ffffff !important; text-shadow: 0 2px 6px rgba(0,0,0,0.9) !important; font-weight: 600 !important; }
+            .tiles article .content p { color: #ffffff !important; text-shadow: 0 1px 4px rgba(0,0,0,0.9) !important; }
+            
+            a[href="#menu"] { border-radius: 30px !important; }
+
+            /* --- ГАЛЕРЕЯ И 3D --- */
+            .fancybox__container { z-index: 99999 !important; }
+            .fancybox__nav, .fancybox__counter, .fancybox__toolbar__items--left, .fancybox__toolbar__items--center { display: none !important; }
+            .fancybox__toolbar__items--right button:not(.fancybox__button--close) { display: none !important; }
+            .fancybox__button--close { background: rgba(0, 0, 0, 0.6) !important; color: white !important; border-radius: 50% !important; margin: 15px !important; padding: 10px !important; display: flex !important; }
+            
+            .model-container { width: 100%; height: 100%; min-width: 300px; min-height: 300px; max-width: 800px; max-height: 80vh; display: none; background: transparent; }
+            model-viewer { width: 100%; height: 100%; outline: none; --poster-color: transparent; }
+
+            /* --- ПОДВАЛ --- */
+            #footer { background-color: transparent !important; padding-top: 30px !important; }
+            #footer h2 { color: var(--heading-color) !important; }
+            #footer p, #footer strong, #footer a { color: var(--text-color) !important; }
+            #footer a:hover { color: #2ed573 !important; }
+        </style>
+	</head>
+	<body class="is-preload">
+			<div id="wrapper">
+					<header id="header">
+						<div class="inner">
+								<a href="index.html" class="logo">
+									<span class="symbol"><img src="images/logo.svg" alt="" /></span><span class="title">Биолаборатория</span>
+								</a>
+								<nav>
+									<ul>
+										<li><a href="#menu">Menu</a></li>
+									</ul>
+								</nav>
+						</div>
+					</header>
+
+					<nav id="menu">
+						<h2>Меню</h2>
+						<ul>
+							<li><a href="index.html">Главная</a></li>
+							<li><a href="#footer">Контакты</a></li>
+						</ul>
+                        <br>
+                        
+                        <h2>Размер текста</h2>
+                        <ul>
+                            <li><a href="#" onclick="setFontSize('small'); return false;">А- Мелкий</a></li>
+                            <li><a href="#" onclick="setFontSize('normal'); return false;">А Нормальный</a></li>
+                            <li><a href="#" onclick="setFontSize('large'); return false;">А+ Крупный</a></li>
+                        </ul>
+                        <br>
+
+                        <h2>Настройки темы</h2>
+                        <ul>
+                            <li><a href="#" onclick="setTheme('dark'); return false;">⚫ Тёмная (Базовая)</a></li>
+                            <li><a href="#" onclick="setTheme('light'); return false;">⚪ Светлая</a></li>
+                        </ul>
+					</nav>
+
+					<div id="main">
+						<div class="inner">
+							<header>
+								<h1>Добро пожаловать в проектную<br />
+								биолабораторию нашей школы.</h1>
+								<p>Здесь мы публикуем результаты наших экспериментов, отчеты о выращивании растений в теплице и исследовательские проекты по биологии. Следите за обновлениями!</p>
+							</header>
+
+                            <!-- ПОИСК -->
+                            <div class="search-wrapper">
+                                <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="11" cy="11" r="8"></circle>
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                </svg>
+                                <input type="text" id="searchInput" placeholder="Поиск по карточкам..." autocomplete="off" />
+                            </div>
+                            <p class="search-empty-msg" id="searchEmptyMsg">Ничего не найдено по вашему запросу.</p>
+                            
+                            <section class="tiles"></section>
+						</div>
+					</div>
+
+				<footer id="footer">
+					<div class="inner">
+                        <section>
+                            <h2>Наши контакты</h2>
+                            <p>По всем вопросам работы лаборатории, теплицы и исследовательских проектов пишите нам на почту:<br>
+                            <strong><a href="mailto:almetevskbiolab@gmail.com" style="color: inherit; text-decoration: underline;">almetevskbiolab@gmail.com</a></strong></p>
+                        </section>
+					</div>
+				</footer>
+			</div>
+
+			<script src="assets/js/jquery.min.js"></script>
+			<script src="assets/js/browser.min.js"></script>
+			<script src="assets/js/breakpoints.min.js"></script>
+			<script src="assets/js/util.js"></script>
+			<script src="assets/js/main.js"></script>
+            
+            <script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.umd.js"></script>
+
+            <script>
+                // ЛОГИКА ТЕМ И ШРИФТОВ
+                function setTheme(themeName) { document.documentElement.setAttribute('data-theme', themeName); try { localStorage.setItem('siteTheme', themeName); } catch(e) {} }
+                try { setTheme(localStorage.getItem('siteTheme') || 'dark'); } catch(e) { setTheme('dark'); }
+
+                function setFontSize(size) { document.documentElement.setAttribute('data-fontsize', size); try { localStorage.setItem('siteFontSize', size); } catch(e) {} }
+                try { setFontSize(localStorage.getItem('siteFontSize') || 'normal'); } catch(e) { setFontSize('normal'); }
+            </script>
+
+            <!-- Модальное окно заказа -->
+            <div id="orderModal" class="modal">
+                <div class="modal-content">
+                    <span class="modal-close" onclick="closeOrderModal()">&times;</span>
+                    <h2>Оформление заказа</h2>
+                    <div class="product-info">
+                        <p><strong id="modalProductTitle"></strong></p>
+                        <p class="price" id="modalProductPrice"></p>
+                    </div>
+                    <form id="orderForm" class="order-form" onsubmit="submitOrder(event)">
+                        <input type="hidden" id="orderProductId" name="productId">
+                        <input type="hidden" id="orderProductTitle" name="productTitle">
+                        <input type="hidden" id="orderProductPrice" name="productPrice">
+
+                        <div class="form-group">
+                            <label for="customerName">Ваше имя *</label>
+                            <input type="text" id="customerName" name="customerName" required placeholder="Иван Иванов">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="customerPhone">Телефон *</label>
+                            <input type="tel" id="customerPhone" name="customerPhone" required placeholder="+7 (999) 123-45-67">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="customerEmail">Email *</label>
+                            <input type="email" id="customerEmail" name="customerEmail" required placeholder="example@mail.com">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="quantity">Количество</label>
+                            <input type="number" id="quantity" name="quantity" min="1" value="1" required>
+                        </div>
+
+                        <button type="submit" class="submit-btn">Оформить заказ</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Модальное окно успешного заказа -->
+            <div id="successModal" class="modal">
+                <div class="modal-content success-content">
+                    <span class="modal-close" onclick="closeSuccessModal()">&times;</span>
+                    <div class="success-icon">✓</div>
+                    <h2>Заказ успешно оформлен!</h2>
+
+                    <div class="order-info">
+                        <p>Номер заказа:</p>
+                        <p><strong id="orderNumber"></strong></p>
+                        <p style="margin-top: 15px;">QR-код отправлен на email: <strong id="orderEmail"></strong></p>
+                    </div>
+
+                    <div class="qr-code">
+                        <img id="qrCodeImage" src="" alt="QR код заказа">
+                    </div>
+
+                    <div class="instructions">
+                        <h3>Что дальше?</h3>
+                        <ol>
+                            <li>Сохраните QR-код (скриншот или письмо на email)</li>
+                            <li>Приходите в школьную теплицу</li>
+                            <li>Покажите QR-код администратору</li>
+                            <li>Оплатите и получите ваш заказ</li>
+                        </ol>
+                    </div>
+
+                    <button class="close-success-btn" onclick="closeSuccessModal()">Закрыть</button>
+                </div>
+            </div>
+
+            <script src="assets/js/shop.js"></script>
+	</body>
+</html>

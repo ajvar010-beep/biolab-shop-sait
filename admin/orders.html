@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Управление заказами - Biolab Admin</title>
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+    <div class="admin-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>🌱 Biolab</h2>
+                <p id="adminUsername">Администратор</p>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html">
+                    <span>📊</span>
+                    <span>Главная</span>
+                </a>
+                <a href="products.html">
+                    <span>🌿</span>
+                    <span>Товары</span>
+                </a>
+                <a href="orders.html" class="active">
+                    <span>📦</span>
+                    <span>Заказы</span>
+                </a>
+                <a href="categories.html">
+                    <span>📁</span>
+                    <span>Категории</span>
+                </a>
+                <a href="#" id="logoutBtn">
+                    <span>🚪</span>
+                    <span>Выход</span>
+                </a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="header">
+                <h1>Управление заказами</h1>
+                <button class="btn btn-primary" id="scanQrBtn">📷 Сканировать QR</button>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2>Все заказы</h2>
+                    <div style="display: flex; gap: 10px;">
+                        <select id="statusFilter" style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px;">
+                            <option value="">Все статусы</option>
+                            <option value="pending">Ожидают</option>
+                            <option value="completed">Выданы</option>
+                            <option value="cancelled">Отменены</option>
+                        </select>
+                        <input type="text" id="searchInput" placeholder="Поиск по номеру или имени..." style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; min-width: 250px;">
+                    </div>
+                </div>
+                <div id="ordersContainer">
+                    <div class="loading">Загрузка заказов...</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Модальное окно просмотра заказа -->
+    <div id="orderModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Заказ <span id="modalOrderNumber"></span></h2>
+                <button class="close-modal" id="closeModal">&times;</button>
+            </div>
+            <div id="orderDetails">
+                <!-- Детали заказа будут загружены сюда -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно сканирования QR -->
+    <div id="qrScanModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Сканирование QR-кода</h2>
+                <button class="close-modal" id="closeQrModal">&times;</button>
+            </div>
+            <div style="padding: 20px;">
+                <p style="margin-bottom: 15px;">Введите номер заказа из QR-кода:</p>
+                <div class="form-group">
+                    <input type="text" id="qrOrderNumber" placeholder="Например: ORD-1234567890" style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1.1rem;">
+                </div>
+                <div id="qrMessage" style="display: none; margin-top: 15px;"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="cancelQrBtn">Отмена</button>
+                    <button type="button" class="btn btn-primary" id="findOrderBtn">Найти заказ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/orders.js"></script>
+</body>
+</html>

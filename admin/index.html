@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biolab Admin - Главная</title>
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+    <div class="admin-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>🌱 Biolab</h2>
+                <p id="adminUsername">Администратор</p>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="active">
+                    <span>📊</span>
+                    <span>Главная</span>
+                </a>
+                <a href="products.html">
+                    <span>🌿</span>
+                    <span>Товары</span>
+                </a>
+                <a href="orders.html">
+                    <span>📦</span>
+                    <span>Заказы</span>
+                </a>
+                <a href="categories.html">
+                    <span>📁</span>
+                    <span>Категории</span>
+                </a>
+                <a href="#" id="logoutBtn">
+                    <span>🚪</span>
+                    <span>Выход</span>
+                </a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="header">
+                <h1>Панель управления</h1>
+                <div class="user-info">
+                    <span id="currentDate"></span>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">🌿</div>
+                    <div class="stat-info">
+                        <h3 id="totalProducts">0</h3>
+                        <p>Всего товаров</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">📦</div>
+                    <div class="stat-info">
+                        <h3 id="totalOrders">0</h3>
+                        <p>Всего заказов</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">⏳</div>
+                    <div class="stat-info">
+                        <h3 id="pendingOrders">0</h3>
+                        <p>Ожидают выдачи</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-info">
+                        <h3 id="completedOrders">0</h3>
+                        <p>Выполнено</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2>Последние заказы</h2>
+                    <a href="orders.html" class="btn btn-primary btn-small">Все заказы</a>
+                </div>
+                <div id="recentOrdersContainer">
+                    <div class="loading">Загрузка...</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2>Товары с низким остатком</h2>
+                    <a href="products.html" class="btn btn-primary btn-small">Все товары</a>
+                </div>
+                <div id="lowStockContainer">
+                    <div class="loading">Загрузка...</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script>
+        // Проверка авторизации
+        checkAuth();
+
+        // Отображение имени пользователя
+        document.getElementById('adminUsername').textContent = getUsername();
+
+        // Текущая дата
+        const dateOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+        document.getElementById('currentDate').textContent = new Date().toLocaleDateString('ru-RU', dateOptions);
+
+        // Выход
+        document.getElementById('logoutBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            if (confirm('Вы уверены, что хотите выйти?')) {
+                logout();
+            }
+        });
+
+        // Загрузка статистики
+        async function loadStats() {
+            try {
+                // Загрузка товаров
+                const productsRes = await apiRequest('/products');
+                const products = await productsRes.json();
+                document.getElementById('totalProducts').textContent = products.length;
+
+                // Загрузка заказов
+                const ordersRes = await apiRequest('/orders');
+                const orders = await ordersRes.json();
+                document.getElementById('totalOrders').textContent = orders.length;
+
+                const pending = orders.filter(o => o.status === 'pending').length;
+                const completed = orders.filter(o => o.status === 'completed').length;
+
+                document.getElementById('pendingOrders').textContent = pending;
+                document.getElementById('completedOrders').textContent = completed;
+
+                // Последние заказы
+                displayRecentOrders(orders.slice(0, 5));
+
+                // Товары с низким остатком
+                displayLowStock(products.filter(p => p.stock < 5));
+
+            } catch (error) {
+                console.error('Ошибка загрузки статистики:', error);
+            }
+        }
+
+        function displayRecentOrders(orders) {
+            const container = document.getElementById('recentOrdersContainer');
+
+            if (orders.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>Заказов пока нет</p></div>';
+                return;
+            }
+
+            const table = `
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Номер</th>
+                                <th>Клиент</th>
+                                <th>Товары</th>
+                                <th>Сумма</th>
+                                <th>Статус</th>
+                                <th>Дата</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${orders.map(order => `
+                                <tr>
+                                    <td><strong>${order.orderNumber}</strong></td>
+                                    <td>${order.customerName}</td>
+                                    <td>${order.items.length} шт.</td>
+                                    <td>${order.totalAmount} ₽</td>
+                                    <td><span class="badge badge-${order.status}">${getStatusText(order.status)}</span></td>
+                                    <td>${new Date(order.createdAt).toLocaleDateString('ru-RU')}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            container.innerHTML = table;
+        }
+
+        function displayLowStock(products) {
+            const container = document.getElementById('lowStockContainer');
+
+            if (products.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>Все товары в наличии</p></div>';
+                return;
+            }
+
+            const table = `
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Изображение</th>
+                                <th>Название</th>
+                                <th>Категория</th>
+                                <th>Остаток</th>
+                                <th>Цена</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${products.map(product => `
+                                <tr>
+                                    <td>
+                                        ${product.imageUrl ? `<img src="${product.imageUrl}" class="product-image" alt="${product.title}">` : '🌿'}
+                                    </td>
+                                    <td><strong>${product.title}</strong></td>
+                                    <td>${product.category}</td>
+                                    <td><span style="color: ${product.stock === 0 ? 'red' : 'orange'}; font-weight: bold;">${product.stock}</span></td>
+                                    <td>${product.price} ₽</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            container.innerHTML = table;
+        }
+
+        function getStatusText(status) {
+            const statuses = {
+                'pending': 'Ожидает',
+                'completed': 'Выдан',
+                'cancelled': 'Отменён'
+            };
+            return statuses[status] || status;
+        }
+
+        // Загрузка при открытии страницы
+        loadStats();
+    </script>
+</body>
+</html>

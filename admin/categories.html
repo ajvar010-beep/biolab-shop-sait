@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Управление категориями - Biolab Admin</title>
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+    <div class="admin-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>🌱 Biolab</h2>
+                <p id="adminUsername">Администратор</p>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html">
+                    <span>📊</span>
+                    <span>Главная</span>
+                </a>
+                <a href="products.html">
+                    <span>🌿</span>
+                    <span>Товары</span>
+                </a>
+                <a href="orders.html">
+                    <span>📦</span>
+                    <span>Заказы</span>
+                </a>
+                <a href="categories.html" class="active">
+                    <span>📁</span>
+                    <span>Категории</span>
+                </a>
+                <a href="#" id="logoutBtn">
+                    <span>🚪</span>
+                    <span>Выход</span>
+                </a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="header">
+                <h1>Управление категориями</h1>
+                <button class="btn btn-primary" id="addCategoryBtn">+ Добавить категорию</button>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2>Все категории</h2>
+                </div>
+                <div id="categoriesContainer">
+                    <div class="loading">Загрузка категорий...</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Модальное окно добавления категории -->
+    <div id="categoryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Добавить категорию</h2>
+                <button class="close-modal" id="closeModal">&times;</button>
+            </div>
+            <form id="categoryForm">
+                <div class="form-group">
+                    <label for="categoryName">Название категории *</label>
+                    <input type="text" id="categoryName" name="name" required placeholder="Например: Деревья">
+                </div>
+
+                <div class="form-group">
+                    <label for="categorySlug">Slug (для URL) *</label>
+                    <input type="text" id="categorySlug" name="slug" required placeholder="Например: trees">
+                    <small style="color: var(--text-muted);">Только латинские буквы, цифры и дефисы</small>
+                </div>
+
+                <div id="formMessage" style="display: none; margin-bottom: 15px;"></div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="cancelBtn">Отмена</button>
+                    <button type="submit" class="btn btn-primary" id="submitBtn">Добавить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/categories.js"></script>
+</body>
+</html>
