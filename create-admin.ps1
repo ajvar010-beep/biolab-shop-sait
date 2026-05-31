@@ -1,44 +1,55 @@
-# Скрипт создания первого администратора
+# Создание первого администратора Biolab (без дефолтных паролей)
 
-Write-Host "🔐 Создание администратора Biolab" -ForegroundColor Green
+Write-Host "Создание администратора Biolab" -ForegroundColor Green
 Write-Host ""
 
-$username = Read-Host "Введите логин (по умолчанию: admin)"
+$username = Read-Host "Логин (3-32 символа, латиница/цифры/_/-)"
 if ([string]::IsNullOrWhiteSpace($username)) {
-    $username = "admin"
+    Write-Host "Логин обязателен" -ForegroundColor Red
+    Read-Host "Нажмите Enter для выхода"
+    exit 1
 }
 
-$password = Read-Host "Введите пароль (по умолчанию: admin123)" -AsSecureString
-$passwordPlain = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($password))
-if ([string]::IsNullOrWhiteSpace($passwordPlain)) {
-    $passwordPlain = "admin123"
+$password = Read-Host "Пароль (минимум 12 символов, буквы+цифры)" -AsSecureString
+$ptr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($password)
+try {
+    $passwordPlain = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr)
+} finally {
+    [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr)
+}
+
+if ([string]::IsNullOrWhiteSpace($passwordPlain) -or $passwordPlain.Length -lt 12) {
+    Write-Host "Пароль слишком короткий (минимум 12 символов)" -ForegroundColor Red
+    Read-Host "Нажмите Enter для выхода"
+    exit 1
 }
 
 Write-Host ""
 Write-Host "Создание администратора..." -ForegroundColor Yellow
 
-$body = @{
-    username = $username
-    password = $passwordPlain
-} | ConvertTo-Json
+# Используем встроенный скрипт node — он работает напрямую с БД,
+# без публичного API регистрации.
+$scriptPath = Join-Path $PSScriptRoot "scripts/create-admin.js"
+if (-not (Test-Path $scriptPath)) {
+    Write-Host "Не найден scripts/create-admin.js" -ForegroundColor Red
+    Read-Host "Нажмите Enter для выхода"
+    exit 1
+}
 
+# Передаём пароль через переменную окружения дочернего процесса,
+# а не как аргумент CLI: иначе он виден в списке процессов системы.
+$env:BIOLAB_ADMIN_USERNAME = $username
+$env:BIOLAB_ADMIN_PASSWORD = $passwordPlain
 try {
-    $response = Invoke-RestMethod -Uri "http://localhost:3000/api/auth/register" -Method POST -Body $body -ContentType "application/json"
-
-    Write-Host ""
-    Write-Host "✅ Администратор успешно создан!" -ForegroundColor Green
-    Write-Host ""
-    Write-Host "Логин: $username" -ForegroundColor Cyan
-    Write-Host "Пароль: $passwordPlain" -ForegroundColor Cyan
-    Write-Host ""
-    Write-Host "Войдите в админку: http://localhost:3000/admin/login.html" -ForegroundColor Yellow
-
-} catch {
-    Write-Host ""
-    Write-Host "❌ Ошибка создания администратора" -ForegroundColor Red
-    Write-Host $_.Exception.Message -ForegroundColor Red
-    Write-Host ""
-    Write-Host "Убедитесь, что сервер запущен (npm run dev)" -ForegroundColor Yellow
+    & node $scriptPath
+} finally {
+    # Чистим переменные окружения и обнуляем строку с паролем
+    Remove-Item Env:BIOLAB_ADMIN_USERNAME -ErrorAction SilentlyContinue
+    Remove-Item Env:BIOLAB_ADMIN_PASSWORD -ErrorAction SilentlyContinue
+    if ($passwordPlain) {
+        $passwordPlain = $null
+        [System.GC]::Collect()
+    }
 }
 
 Write-Host ""

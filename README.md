@@ -1,250 +1,209 @@
-# Biolab - Интернет-магазин школьной биолаборатории
+# 🌱 Biolab - Интернет-магазин растений
 
-Система заказов растений из теплицы с QR-кодами для выдачи товара.
+Современный интернет-магазин для школьной биолаборатории с системой заказов через QR-коды.
 
-## Технологии
-
-**Backend:**
-- Node.js + Express
-- MongoDB + Mongoose
-- JWT авторизация
-- QR-коды для заказов
-- Email уведомления
-
-**Frontend:**
-- Vanilla JavaScript
-- Fancybox (галерея)
-- Model Viewer (3D модели)
-
-## Установка
-
-### 1. Установка зависимостей
+## 🚀 Быстрый старт
 
 ```bash
+# 1. Установка зависимостей
 npm install
-```
 
-### 2. Настройка переменных окружения
-
-Создайте файл `.env` на основе `.env.example`:
-
-```bash
+# 2. Настройка переменных окружения
 cp .env.example .env
-```
+# Отредактируйте .env файл
 
-Отредактируйте `.env` и укажите:
-- `MONGODB_URI` - строка подключения к MongoDB
-- `JWT_SECRET` - секретный ключ для JWT (любая случайная строка)
-- `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USER`, `EMAIL_PASS` - настройки SMTP для отправки email
-
-### 3. Запуск MongoDB
-
-Убедитесь, что MongoDB запущена локально или используйте MongoDB Atlas (облачная БД).
-
-**Локальный запуск MongoDB:**
-```bash
-mongod
-```
-
-**MongoDB Atlas (бесплатно):**
-1. Зарегистрируйтесь на https://www.mongodb.com/cloud/atlas
-2. Создайте кластер
-3. Получите строку подключения и вставьте в `.env`
-
-### 4. Запуск сервера
-
-**Режим разработки (с автоперезагрузкой):**
-```bash
-npm run dev
-```
-
-**Продакшн:**
-```bash
+# 3. Запуск
 npm start
 ```
 
-Сервер запустится на `http://localhost:3000`
+**Админка:** `/admin` (логин: `admin`, пароль: `AdminDemo2026`)
 
-## API Endpoints
+## 📋 Возможности
 
-### Авторизация
+### Для покупателей:
+- 🛒 Просмотр каталога растений с фото и 3D-моделями
+- 📱 Оформление заказа через форму
+- 📧 Получение QR-кода на email
+- 🏪 Выдача товара в теплице по QR-коду
 
-**POST** `/api/auth/register` - Регистрация админа
-```json
-{
-  "username": "admin",
-  "password": "password123"
-}
+### Для админов:
+- 📦 Управление товарами (добавление, редактирование, удаление)
+- 📋 Просмотр и обработка заказов
+- 📊 Статистика продаж
+- 📱 Сканирование QR-кодов
+- 💾 Автоматическое управление остатками
+
+## 🛠 Технологии
+
+**Backend:** Node.js, Express, SQLite (sql.js), JWT  
+**Frontend:** Vanilla JS, Fancybox, Model Viewer  
+**Безопасность:** Helmet, Rate Limiting, CORS, XSS Protection
+
+## 🔧 Настройка
+
+### Переменные окружения (.env):
+```env
+# JWT (обязательно, минимум 16 символов)
+JWT_SECRET=your-super-secret-key-at-least-16-chars
+JWT_EXPIRES_IN=24h
+
+# Email (для уведомлений, опционально)
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASS=your-app-password
+EMAIL_ENABLED=true
+
+# Безопасность
+NODE_ENV=production
+ALLOWED_ORIGINS=https://yourdomain.com
 ```
 
-**POST** `/api/auth/login` - Вход админа
-```json
-{
-  "username": "admin",
-  "password": "password123"
-}
+### Первый запуск:
+При первом запуске автоматически создаётся админ:
+- **Логин:** `admin`
+- **Пароль:** `AdminDemo2026`
+
+## 🌐 Деплой
+
+### Render.com (бесплатно):
+
+1. **Создайте GitHub репозиторий** с кодом проекта
+
+2. **На Render.com:**
+   - New → Web Service
+   - Подключите GitHub репозиторий
+   - Build Command: `npm install`
+   - Start Command: `npm start`
+   - Plan: Free
+
+3. **Переменные окружения в Render:**
+```
+NODE_ENV=production
+JWT_SECRET=<сгенерируйте случайную строку 32+ символов>
+ALLOWED_ORIGINS=https://your-service.onrender.com
+PORT=3000
 ```
 
-**GET** `/api/auth/verify` - Проверка токена (требует Authorization header)
+4. **Деплой:**
+   - Нажмите "Create Web Service"
+   - Подождите 2-3 минуты
+   - Сайт готов!
 
-### Товары
+### Railway.app:
+- Similar steps, use `npm start` as start command
 
-**GET** `/api/products` - Получить все товары
-- Query параметры: `?category=Деревья&sort=price_asc`
-
-**GET** `/api/products/:id` - Получить товар по ID
-
-**POST** `/api/products` - Создать товар (требует авторизации)
-- Content-Type: `multipart/form-data`
-- Поля: `title`, `description`, `price`, `category`, `stock`, `size`, `image` (файл)
-
-**PUT** `/api/products/:id` - Обновить товар (требует авторизации)
-
-**DELETE** `/api/products/:id` - Удалить товар (требует авторизации)
-
-### Заказы
-
-**POST** `/api/orders` - Создать заказ
-```json
-{
-  "customerName": "Иван Иванов",
-  "customerPhone": "+79001234567",
-  "customerEmail": "ivan@example.com",
-  "items": [
-    {
-      "productId": "507f1f77bcf86cd799439011",
-      "quantity": 2
-    }
-  ]
-}
-```
-
-**GET** `/api/orders` - Получить все заказы (требует авторизации)
-- Query параметры: `?status=pending`
-
-**GET** `/api/orders/number/:orderNumber` - Получить заказ по номеру
-
-**PUT** `/api/orders/:orderNumber/status` - Обновить статус заказа (требует авторизации)
-```json
-{
-  "status": "completed"
-}
-```
-
-**POST** `/api/orders/:orderNumber/cancel` - Отменить заказ (требует авторизации)
-
-### Категории
-
-**GET** `/api/categories` - Получить все категории
-
-**POST** `/api/categories` - Создать категорию (требует авторизации)
-```json
-{
-  "name": "Деревья",
-  "slug": "trees"
-}
-```
-
-**DELETE** `/api/categories/:id` - Удалить категорию (требует авторизации)
-
-## Первоначальная настройка
-
-### 1. Создание первого админа
-
+### VPS / Локальный сервер:
 ```bash
-curl -X POST http://localhost:3000/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"your_secure_password"}'
+npm install
+npm start
+# Сервер запустится на порту 3000
 ```
 
-### 2. Создание категорий
+## 📱 Использование
 
-```bash
-# Получите токен после входа
-TOKEN="your_jwt_token"
+### Покупатель:
+1. Заходит на сайт → выбирает товар → "Заказать"
+2. Заполняет форму (имя, телефон, email)
+3. Получает QR-код на экран
+4. Приходит в теплицу → показывает QR
+5. Оплачивает на месте
 
-curl -X POST http://localhost:3000/api/categories \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{"name":"Деревья","slug":"trees"}'
+### Админ:
+1. Вход в `/admin` (admin / AdminDemo2026)
+2. Управляет товарами и заказами
+3. Сканирует QR-код → отмечает заказ выданным
 
-curl -X POST http://localhost:3000/api/categories \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{"name":"Кустарники","slug":"shrubs"}'
+## 🔒 Безопасность
+
+- ✅ Защита от XSS атак
+- ✅ Rate limiting (защита от спама)
+- ✅ CORS настройка
+- ✅ Валидация всех входных данных
+- ✅ Хеширование паролей (bcrypt)
+- ✅ JWT токены с истечением
+- ✅ Защита от SQL инъекций
+
+## 📊 API Endpoints
+
+### Публичные:
+```
+GET  /api/health          # Проверка работы
+GET  /api/products        # Список товаров
+GET  /api/categories       # Категории
+GET  /api/settings         # Настройки магазина
+POST /api/orders           # Создать заказ
+GET  /api/orders/code/:code  # Найти заказ по коду
+GET  /api/orders/phone/:phone # Найти заказы по телефону
 ```
 
-## Структура проекта
+### Админ (требует авторизацию):
+```
+POST /api/auth/login       # Вход админа
+POST /api/auth/logout      # Выход
+GET  /api/auth/verify      # Проверка токена
+
+GET    /api/products       # Список товаров
+POST   /api/products       # Добавить товар
+PUT    /api/products/:id   # Редактировать товар
+DELETE /api/products/:id   # Удалить товар
+
+POST /api/categories       # Добавить категорию
+DELETE /api/categories/:id # Удалить категорию
+
+GET    /api/orders          # Все заказы
+GET    /api/orders/admin/code/:code # Детали заказа (админ)
+POST   /api/orders/:code/complete  # Отметить выданным
+POST   /api/orders/:code/cancel    # Отменить заказ
+
+GET  /api/settings         # Получить настройки
+PUT  /api/settings         # Сохранить настройки
+```
+
+## 📁 Структура проекта
 
 ```
 biolab/
 ├── backend/
-│   ├── models/          # Mongoose модели
-│   ├── routes/          # Express маршруты
-│   ├── controllers/     # Контроллеры
-│   ├── middleware/      # Middleware (авторизация)
-│   ├── config/          # Конфигурация (БД)
-│   ├── utils/           # Утилиты (QR, email)
-│   └── server.js        # Главный файл сервера
-├── admin/               # Админка (в разработке)
-├── uploads/             # Загруженные изображения
-├── assets/              # Фронтенд ресурсы
-├── images/              # Статические изображения
-├── index.html           # Главная страница
-├── package.json
-├── .env                 # Переменные окружения
-└── README.md
+│   ├── config/
+│   │   └── database.js    # SQLite Database Layer
+│   ├── controllers/       # Логика API
+│   │   ├── authController.js
+│   │   ├── productController.js
+│   │   ├── orderController.js
+│   │   ├── categoryController.js
+│   │   └── settingsController.js
+│   ├── middleware/        # Auth, security
+│   ├── routes/           # API routes
+│   ├── utils/            # QR generator, email sender
+│   └── server.js         # Главный файл
+├── data/                  # SQLite база данных (создаётся автоматически)
+├── public/                # Статические файлы (HTML, CSS, JS)
+├── uploads/               # Загруженные изображения
+├── .env                   # Переменные окружения
+└── package.json
 ```
 
-## Деплой
+## 🐛 Устранение неполадок
 
-### Render.com (бесплатно)
+**Сервер не запускается:**
+- Проверьте .env файл (JWT_SECRET должен быть ≥16 символов)
+- Убедитесь что порт 3000 свободен
 
-1. Создайте аккаунт на https://render.com
-2. Создайте Web Service из GitHub репозитория
-3. Настройки:
-   - Build Command: `npm install`
-   - Start Command: `npm start`
-   - Environment Variables: добавьте все из `.env`
-4. Создайте MongoDB Atlas кластер и укажите строку подключения
+**Админка не работает:**
+- Проверьте что JWT_SECRET установлен в .env
+- Логин: `admin`, Пароль: `AdminDemo2026`
 
-### Хостинг школы
+**Ошибка базы данных:**
+- Удалите `data/biolab.db` и перезапустите — база создастся заново
 
-Инструкции будут добавлены позже после уточнения требований хостинга.
-
-## Флоу заказа
-
-1. Покупатель выбирает товар на сайте
-2. Заполняет форму заказа (имя, телефон, email)
-3. Система создает заказ, генерирует QR-код
-4. QR-код отправляется на email и показывается на экране
-5. Покупатель приходит в теплицу с QR-кодом
-6. Админ сканирует QR → видит детали заказа
-7. Админ выдает товар → отмечает заказ как "Выдан"
-8. Оплата на месте (наличные/перевод)
-
-## Разработка
-
-- Используйте `npm run dev` для автоперезагрузки при изменениях
-- Логи сервера выводятся в консоль
-- Загруженные изображения сохраняются в `uploads/`
-- Доступ к изображениям: `http://localhost:3000/uploads/filename.jpg`
-
-## TODO
-
-- [ ] Создать админку (HTML/CSS/JS)
-- [ ] Добавить сканер QR-кодов в админке
-- [ ] Доработать фронтенд (форма заказа, фильтры)
-- [ ] Добавить корзину (опционально)
-- [ ] Тестирование
-- [ ] Деплой
-
-## Контакты
-
-**Email:** almetevskbiolab@gmail.com
+**Email не отправляется:**
+- Проверьте EMAIL_* настройки в .env
+- Для Gmail используйте App Password (не обычный пароль)
 
 ---
 
-**Разработчик:** Школьник на летней подработке  
-**Для:** Школьная биолаборатория  
-**Дата:** Май 2026
+**Статус:** ✅ Готов к продакшену  
+**Версия:** 1.2.0  
+**База данных:** SQLite (sql.js)
+**Последнее обновление:** 31.05.2026

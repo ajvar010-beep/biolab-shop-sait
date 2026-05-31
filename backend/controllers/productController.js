@@ -1,229 +1,319 @@
-const Product = require('../models/Product');
-const mongoose = require('mongoose');
+/**
+ * Product Controller - SQLite версия
+ */
+const db = require('../config/database');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs/promises');
 
-// Функция валидации ObjectId
-const isValidObjectId = (id) => {
-  return mongoose.Types.ObjectId.isValid(id);
-};
+const UPLOAD_DIR = path.resolve(process.cwd(), 'uploads');
 
-// Настройка multer для загрузки изображений
+const ALLOWED_EXT = /\.(jpe?g|png|gif|webp)$/i;
+const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/');
-  },
+  destination: (req, file, cb) => cb(null, UPLOAD_DIR),
   filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
+    const ext = path.extname(file.originalname).toLowerCase();
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, `${uniqueSuffix}${ext}`);
   }
 });
 
 const upload = multer({
-  storage: storage,
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB
-    files: 1 // только один файл
-  },
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024, files: 1 },
   fileFilter: (req, file, cb) => {
-    // Проверка расширения файла
-    const allowedExtensions = /\.(jpeg|jpg|png|gif|webp)$/i;
-    const extname = allowedExtensions.test(file.originalname);
-
-    // Проверка MIME типа
-    const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-    const mimetype = allowedMimeTypes.includes(file.mimetype);
-
-    // Проверка размера имени файла
-    if (file.originalname.length > 255) {
-      return cb(new Error('Имя файла слишком длинное'));
+    if (!file.originalname || file.originalname.length > 255) {
+      return cb(new Error('Неверное имя файла'));
     }
-
-    // Проверка на опасные символы в имени файла
-    const dangerousChars = /[<>:"/\\|?*\x00-\x1f]/;
-    if (dangerousChars.test(file.originalname)) {
+    if (/[<>:"/\\|?*\x00-\x1f]/.test(file.originalname)) {
       return cb(new Error('Недопустимые символы в имени файла'));
     }
-
-    if (mimetype && extname) {
-      return cb(null, true);
-    } else {
-      cb(new Error('Разрешены только изображения (JPEG, PNG, GIF, WebP)'));
+    if (!ALLOWED_EXT.test(file.originalname)) {
+      return cb(new Error('Разрешены только изображения JPG/PNG/GIF/WebP'));
     }
+    if (!ALLOWED_MIME.includes(file.mimetype)) {
+      return cb(new Error('Неверный тип файла'));
+    }
+    cb(null, true);
   }
 }).single('image');
+
+function uploadAsync(req, res) {
+  return new Promise((resolve, reject) => {
+    upload(req, res, (err) => err ? reject(err) : resolve());
+  });
+}
+
+async function deleteUploadedFile(file) {
+  if (!file || !file.path) return;
+  try { await fs.unlink(file.path); } catch (_) { /* ignore */ }
+}
+
+async function deleteOldImage(imageUrl) {
+  if (typeof imageUrl !== 'string' || !imageUrl.startsWith('/uploads/')) return;
+  const fname = path.basename(imageUrl);
+  const fullPath = path.join(UPLOAD_DIR, fname);
+  if (path.dirname(fullPath) !== UPLOAD_DIR) return;
+  try { await fs.unlink(fullPath); } catch (_) { /* ignore */ }
+}
+
+function validateUrl(url, fieldName) {
+  if (!url) return { ok: true, value: '' };
+  if (typeof url !== 'string') return { ok: false, message: `${fieldName} должен быть строкой` };
+  const trimmed = url.trim();
+  if (!trimmed) return { ok: true, value: '' };
+  if (trimmed.length > 500) return { ok: false, message: `${fieldName} слишком длинный` };
+  if (!/^https?:\/\//i.test(trimmed)) {
+    return { ok: false, message: `${fieldName} должен начинаться с http:// или https://` };
+  }
+  return { ok: true, value: trimmed };
+}
+
+function validateProductPayload(body, { partial = false } = {}) {
+  const errors = [];
+  const out = {};
+
+  if (body.title !== undefined || !partial) {
+    if (typeof body.title !== 'string' || !body.title.trim()) errors.push('Название обязательно');
+    else if (body.title.length > 200) errors.push('Название слишком длинное (≤ 200)');
+    else out.title = body.title.trim();
+  }
+  if (body.description !== undefined || !partial) {
+    if (typeof body.description !== 'string' || !body.description.trim()) errors.push('Описание обязательно');
+    else if (body.description.length > 2000) errors.push('Описание слишком длинное (≤ 2000)');
+    else out.description = body.description.trim();
+  }
+  if (body.price !== undefined || !partial) {
+    const n = Number(body.price);
+    if (!Number.isFinite(n) || n < 0 || n > 1000000) errors.push('Цена: 0 — 1 000 000');
+    else out.price = n;
+  }
+  if (body.salePrice !== undefined && body.salePrice !== null && body.salePrice !== '') {
+    const n = Number(body.salePrice);
+    if (!Number.isFinite(n) || n < 0 || n > 1000000) errors.push('Акционная цена: 0 — 1 000 000');
+    else out.salePrice = n;
+  } else {
+    out.salePrice = null;
+  }
+  if (body.saleStart !== undefined && body.saleStart !== '') {
+    const d = new Date(body.saleStart);
+    if (isNaN(d.getTime())) errors.push('Неверная дата начала акции');
+    else out.saleStart = d.toISOString();
+  } else {
+    out.saleStart = null;
+  }
+  if (body.saleEnd !== undefined && body.saleEnd !== '') {
+    const d = new Date(body.saleEnd);
+    if (isNaN(d.getTime())) errors.push('Неверная дата окончания акции');
+    else out.saleEnd = d.toISOString();
+  } else {
+    out.saleEnd = null;
+  }
+  if (body.category !== undefined || !partial) {
+    if (typeof body.category !== 'string' || !body.category.trim()) errors.push('Категория обязательна');
+    else if (body.category.length > 100) errors.push('Категория: ≤ 100 символов');
+    else out.category = body.category.trim();
+  }
+  if (body.stock !== undefined) {
+    const n = Number(body.stock);
+    if (!Number.isFinite(n) || n < 0 || n > 100000) errors.push('Остаток: 0 — 100 000');
+    else out.stock = Math.floor(n);
+  } else if (!partial) {
+    out.stock = 0;
+  }
+  if (body.size !== undefined) {
+    if (!['normal', 'wide', 'large'].includes(body.size)) errors.push('Неверный размер');
+    else out.size = body.size;
+  } else if (!partial) {
+    out.size = 'normal';
+  }
+  if (body.modelUrl !== undefined) {
+    const r = validateUrl(body.modelUrl, 'URL модели');
+    if (!r.ok) errors.push(r.message);
+    else out.modelUrl = r.value;
+  }
+  if (body.images !== undefined) {
+    if (!Array.isArray(body.images)) errors.push('images должен быть массивом');
+    else {
+      const validImages = [];
+      for (const img of body.images) {
+        if (typeof img !== 'string') continue;
+        const trimmed = img.trim();
+        if (!trimmed) continue;
+        if (trimmed.length > 500) { errors.push('URL изображения слишком длинный'); continue; }
+        validImages.push(trimmed);
+      }
+      out.images = JSON.stringify(validImages);
+    }
+  }
+
+  return { errors, data: out };
+}
 
 // Получить все товары
 exports.getAllProducts = async (req, res) => {
   try {
     const { category, sort } = req.query;
-    let query = {};
-
-    if (category) {
-      query.category = category;
+    const query = {};
+    if (typeof category === 'string' && category.trim()) {
+      query.category = category.trim();
     }
 
-    let products = Product.find(query);
+    let products = db.find('products', query);
 
     // Сортировка
     if (sort === 'price_asc') {
-      products = products.sort({ price: 1 });
+      products.sort((a, b) => (a.salePrice || a.price) - (b.salePrice || b.price));
     } else if (sort === 'price_desc') {
-      products = products.sort({ price: -1 });
-    } else if (sort === 'date_desc') {
-      products = products.sort({ createdAt: -1 });
+      products.sort((a, b) => (b.salePrice || b.price) - (a.salePrice || a.price));
+    } else {
+      products.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }
 
-    const result = await products;
-    res.json(result);
+    // Парсим images
+    products = products.map(p => {
+      if (p.images && typeof p.images === 'string') {
+        try { p.images = JSON.parse(p.images); } catch (_) { p.images = []; }
+      }
+      return p;
+    });
+
+    res.json(products.slice(0, 500));
   } catch (error) {
-    console.error('Ошибка получения товаров:', error);
+    console.error('Ошибка получения товаров:', error.message);
     res.status(500).json({ message: 'Ошибка сервера' });
   }
 };
 
-// Получить товар по ID
 exports.getProductById = async (req, res) => {
   try {
-    // Валидация ObjectId
-    if (!isValidObjectId(req.params.id)) {
-      return res.status(400).json({ message: 'Неверный формат ID товара' });
+    const product = db.findOne('products', { _id: req.params.id });
+    if (!product) return res.status(404).json({ message: 'Товар не найден' });
+
+    // Парсим images
+    if (product.images && typeof product.images === 'string') {
+      try { product.images = JSON.parse(product.images); } catch (_) { product.images = []; }
     }
 
-    const product = await Product.findById(req.params.id);
-    if (!product) {
-      return res.status(404).json({ message: 'Товар не найден' });
-    }
     res.json(product);
   } catch (error) {
-    console.error('Ошибка получения товара:', error);
+    console.error('Ошибка получения товара:', error.message);
     res.status(500).json({ message: 'Ошибка сервера' });
   }
 };
 
-// Создать товар (только для админа)
 exports.createProduct = async (req, res) => {
-  upload(req, res, async (err) => {
-    if (err) {
-      return res.status(400).json({ message: err.message });
-    }
-
-    try {
-      const { title, description, price, category, stock, size, modelUrl } = req.body;
-
-      // Валидация обязательных полей
-      if (!title || !description || !price || !category) {
-        return res.status(400).json({ message: 'Заполните все обязательные поля' });
-      }
-
-      // Валидация длины строк
-      if (title.length > 200) {
-        return res.status(400).json({ message: 'Название товара слишком длинное (макс. 200 символов)' });
-      }
-
-      if (description.length > 2000) {
-        return res.status(400).json({ message: 'Описание товара слишком длинное (макс. 2000 символов)' });
-      }
-
-      // Валидация цены
-      const numPrice = Number(price);
-      if (isNaN(numPrice) || numPrice < 0 || numPrice > 1000000) {
-        return res.status(400).json({ message: 'Неверная цена (должна быть от 0 до 1,000,000)' });
-      }
-
-      // Валидация остатка
-      const numStock = Number(stock) || 0;
-      if (isNaN(numStock) || numStock < 0 || numStock > 10000) {
-        return res.status(400).json({ message: 'Неверный остаток (должен быть от 0 до 10,000)' });
-      }
-
-      // Валидация размера
-      const allowedSizes = ['normal', 'wide', 'large'];
-      const productSize = size || 'normal';
-      if (!allowedSizes.includes(productSize)) {
-        return res.status(400).json({ message: 'Неверный размер товара' });
-      }
-
-      // Валидация URL модели (если указан)
-      if (modelUrl && modelUrl.length > 500) {
-        return res.status(400).json({ message: 'URL модели слишком длинный (макс. 500 символов)' });
-      }
-
-      const imageUrl = req.file ? `/uploads/${req.file.filename}` : '';
-
-      const product = new Product({
-        title: title.trim(),
-        description: description.trim(),
-        price: numPrice,
-        category: category.trim(),
-        imageUrl,
-        modelUrl: modelUrl ? modelUrl.trim() : '',
-        stock: numStock,
-        size: productSize
-      });
-
-      await product.save();
-      res.status(201).json(product);
-    } catch (error) {
-      console.error('Ошибка создания товара:', error);
-      res.status(500).json({ message: 'Ошибка сервера' });
-    }
-  });
-};
-
-// Обновить товар (только для админа)
-exports.updateProduct = async (req, res) => {
-  upload(req, res, async (err) => {
-    if (err) {
-      return res.status(400).json({ message: err.message });
-    }
-
-    try {
-      // Валидация ObjectId
-      if (!isValidObjectId(req.params.id)) {
-        return res.status(400).json({ message: 'Неверный формат ID товара' });
-      }
-
-      const product = await Product.findById(req.params.id);
-      if (!product) {
-        return res.status(404).json({ message: 'Товар не найден' });
-      }
-
-      const { title, description, price, category, stock, size, modelUrl } = req.body;
-
-      if (title) product.title = title;
-      if (description) product.description = description;
-      if (price) product.price = Number(price);
-      if (category) product.category = category;
-      if (stock !== undefined) product.stock = Number(stock);
-      if (size) product.size = size;
-      if (modelUrl !== undefined) product.modelUrl = modelUrl;
-      if (req.file) product.imageUrl = `/uploads/${req.file.filename}`;
-
-      await product.save();
-      res.json(product);
-    } catch (error) {
-      console.error('Ошибка обновления товара:', error);
-      res.status(500).json({ message: 'Ошибка сервера' });
-    }
-  });
-};
-
-// Удалить товар (только для админа)
-exports.deleteProduct = async (req, res) => {
   try {
-    // Валидация ObjectId
-    if (!isValidObjectId(req.params.id)) {
-      return res.status(400).json({ message: 'Неверный формат ID товара' });
+    await uploadAsync(req, res);
+  } catch (err) {
+    return res.status(400).json({ message: err.message || 'Ошибка загрузки файла' });
+  }
+
+  try {
+    const { errors, data } = validateProductPayload(req.body, { partial: false });
+    if (errors.length) {
+      await deleteUploadedFile(req.file);
+      return res.status(400).json({ message: errors.join('; ') });
     }
 
-    const product = await Product.findByIdAndDelete(req.params.id);
+    // Проверяем существование категории
+    const categoryExists = db.findOne('categories', { name: data.category });
+    if (!categoryExists) {
+      await deleteUploadedFile(req.file);
+      return res.status(400).json({ message: 'Категория не найдена' });
+    }
+
+    if (req.file) data.imageUrl = `/uploads/${req.file.filename}`;
+    else data.imageUrl = '';
+
+    data._id = 'prod_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    data.createdAt = new Date().toISOString();
+    data.updatedAt = data.createdAt;
+
+    db.insert('products', data);
+
+    // Парсим images для ответа
+    if (data.images && typeof data.images === 'string') {
+      try { data.images = JSON.parse(data.images); } catch (_) {}
+    }
+
+    res.status(201).json(data);
+  } catch (error) {
+    await deleteUploadedFile(req.file);
+    console.error('Ошибка создания товара:', error.message);
+    res.status(500).json({ message: 'Ошибка сервера' });
+  }
+};
+
+exports.updateProduct = async (req, res) => {
+  try {
+    await uploadAsync(req, res);
+  } catch (err) {
+    return res.status(400).json({ message: err.message || 'Ошибка загрузки файла' });
+  }
+
+  try {
+    const product = db.findOne('products', { _id: req.params.id });
     if (!product) {
+      await deleteUploadedFile(req.file);
       return res.status(404).json({ message: 'Товар не найден' });
     }
-    res.json({ message: 'Товар удален' });
+
+    const { errors, data } = validateProductPayload(req.body, { partial: true });
+    if (errors.length) {
+      await deleteUploadedFile(req.file);
+      return res.status(400).json({ message: errors.join('; ') });
+    }
+
+    if (data.category) {
+      const categoryExists = db.findOne('categories', { name: data.category });
+      if (!categoryExists) {
+        await deleteUploadedFile(req.file);
+        return res.status(400).json({ message: 'Категория не найдена' });
+      }
+    }
+
+    const oldImageUrl = product.imageUrl;
+    if (req.file) data.imageUrl = `/uploads/${req.file.filename}`;
+
+    data.updatedAt = new Date().toISOString();
+
+    db.updateOne('products', { _id: req.params.id }, data);
+
+    // Удаляем старое изображение, если его заменили
+    if (req.file && oldImageUrl && oldImageUrl !== data.imageUrl) {
+      await deleteOldImage(oldImageUrl);
+    }
+
+    // Получаем обновлённый товар
+    const updated = db.findOne('products', { _id: req.params.id });
+    if (updated.images && typeof updated.images === 'string') {
+      try { updated.images = JSON.parse(updated.images); } catch (_) { updated.images = []; }
+    }
+
+    res.json(updated);
   } catch (error) {
-    console.error('Ошибка удаления товара:', error);
+    await deleteUploadedFile(req.file);
+    console.error('Ошибка обновления товара:', error.message);
+    res.status(500).json({ message: 'Ошибка сервера' });
+  }
+};
+
+exports.deleteProduct = async (req, res) => {
+  try {
+    const product = db.findOne('products', { _id: req.params.id });
+    if (!product) return res.status(404).json({ message: 'Товар не найден' });
+
+    db.deleteOne('products', { _id: req.params.id });
+
+    // Удаляем картинку с диска
+    if (product.imageUrl) await deleteOldImage(product.imageUrl);
+
+    res.json({ message: 'Товар удалён' });
+  } catch (error) {
+    console.error('Ошибка удаления товара:', error.message);
     res.status(500).json({ message: 'Ошибка сервера' });
   }
 };

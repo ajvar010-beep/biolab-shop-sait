@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Настройки сайта — Biolab Admin</title>
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+    <div class="admin-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>🌱 Biolab</h2>
+                <p id="adminUsername">Администратор</p>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html"><span aria-hidden="true">📊</span><span>Главная</span></a>
+                <a href="products.html"><span aria-hidden="true">🌿</span><span>Товары</span></a>
+                <a href="orders.html"><span aria-hidden="true">📦</span><span>Заказы</span></a>
+                <a href="categories.html"><span aria-hidden="true">📁</span><span>Категории</span></a>
+                <a href="settings.html" class="active"><span aria-hidden="true">⚙️</span><span>Настройки</span></a>
+                <a href="#" id="logoutBtn"><span aria-hidden="true">🚪</span><span>Выход</span></a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="header">
+                <h1>Настройки сайта</h1>
+            </div>
+
+            <p style="color:var(--text-muted);margin-bottom:20px;">
+                Эти данные показываются на главной странице сайта в футере и в блоке «О нас». Менять можно когда угодно — посетители увидят новые контакты сразу после сохранения.
+            </p>
+
+            <div id="settingsContainer">
+                <div class="loading">Загрузка...</div>
+            </div>
+        </main>
+    </div>
+
+    <template id="settingsFormTemplate">
+        <form id="settingsForm" autocomplete="off">
+            <div class="card">
+                <div class="card-header"><h2>Контакты</h2></div>
+
+                <div class="form-group">
+                    <label for="email">Электронная почта</label>
+                    <input type="email" id="email" name="email" maxlength="254" placeholder="example@school.ru">
+                </div>
+
+                <div class="form-group">
+                    <label for="phone">Телефон</label>
+                    <input type="text" id="phone" name="phone" maxlength="50" placeholder="+7 (123) 456-78-90">
+                </div>
+
+                <div class="form-group">
+                    <label for="address">Адрес</label>
+                    <input type="text" id="address" name="address" maxlength="300" placeholder="г. Альметьевск, ул. ...">
+                </div>
+
+                <div class="form-group">
+                    <label for="workingHours">Часы работы</label>
+                    <input type="text" id="workingHours" name="workingHours" maxlength="200" placeholder="Пн-Пт 9:00-17:00, Сб-Вс выходной">
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2>Социальные сети</h2>
+                    <button type="button" class="btn btn-primary btn-small" id="addSocialBtn">+ Добавить</button>
+                </div>
+                <p style="color:var(--text-muted);margin-bottom:15px;">
+                    Можно добавить любое количество ссылок: VK, Telegram, WhatsApp и другие. Они появятся в футере как иконки.
+                </p>
+                <div id="socialsList"></div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><h2>О нас</h2></div>
+                <div class="form-group">
+                    <label for="aboutText">Текст «О нас» на главной</label>
+                    <textarea id="aboutText" name="aboutText" maxlength="2000" rows="6" placeholder="Школьная биолаборатория..."></textarea>
+                </div>
+            </div>
+
+            <div id="formMessage" style="display:none;margin-bottom:15px;" role="alert" aria-live="polite"></div>
+
+            <div style="display:flex;gap:10px;justify-content:flex-end;margin-bottom:30px;">
+                <button type="submit" class="btn btn-primary" id="saveBtn">💾 Сохранить</button>
+            </div>
+        </form>
+    </template>
+
+    <template id="socialRowTemplate">
+        <div class="social-row" style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start;">
+            <select class="social-platform form-control" style="flex:0 0 160px;">
+                <option value="vk">ВКонтакте</option>
+                <option value="telegram">Telegram</option>
+                <option value="whatsapp">WhatsApp</option>
+                <option value="instagram">Instagram</option>
+                <option value="youtube">YouTube</option>
+                <option value="tiktok">TikTok</option>
+                <option value="odnoklassniki">Одноклассники</option>
+                <option value="facebook">Facebook</option>
+                <option value="website">Сайт</option>
+                <option value="email">Email</option>
+                <option value="phone">Телефон</option>
+                <option value="other">Другое</option>
+            </select>
+            <input type="url" class="social-url form-control" placeholder="https://..." style="flex:1;" maxlength="500">
+            <input type="text" class="social-label form-control" placeholder="Подпись (необязательно)" style="flex:0 0 200px;" maxlength="100">
+            <button type="button" class="btn btn-danger btn-small social-remove" style="flex:0 0 auto;">×</button>
+        </div>
+    </template>
+
+    <script src="js/auth.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/settings.js"></script>
+</body>
+</html>

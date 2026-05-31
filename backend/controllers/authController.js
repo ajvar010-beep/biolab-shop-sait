@@ -1,37 +1,63 @@
+/**
+ * Auth Controller - SQLite версия
+ */
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const Admin = require('../models/Admin');
+const db = require('../config/database');
+const crypto = require('crypto');
 
-// Регистрация админа (только для первоначальной настройки)
+const BCRYPT_ROUNDS = 12;
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
+
+function isString(v) {
+  return typeof v === 'string';
+}
+
+function validatePassword(password) {
+  if (!isString(password)) return 'Пароль обязателен';
+  if (password.length < 8) return 'Пароль: минимум 8 символов';
+  return null;
+}
+
+function validateUsername(username) {
+  if (!isString(username)) return 'Логин обязателен';
+  const trimmed = username.trim();
+  if (trimmed.length < 3 || trimmed.length > 32) return 'Логин: от 3 до 32 символов';
+  if (!/^[a-zA-Z0-9_-]+$/.test(trimmed)) return 'Логин: только латиница, цифры, _ и -';
+  return null;
+}
+
+// Регистрация админа
 exports.register = async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { username, password } = req.body || {};
 
-    if (!username || !password) {
-      return res.status(400).json({ message: 'Укажите username и password' });
-    }
+    const userErr = validateUsername(username);
+    if (userErr) return res.status(400).json({ message: userErr });
+    const passErr = validatePassword(password);
+    if (passErr) return res.status(400).json({ message: passErr });
 
-    // Проверка существования админа
-    const existingAdmin = await Admin.findOne({ username });
+    const trimmedUsername = username.trim();
+
+    const existingAdmin = db.findOne('users', { username: trimmedUsername });
     if (existingAdmin) {
-      return res.status(400).json({ message: 'Админ с таким username уже существует' });
+      return res.status(400).json({ message: 'Не удалось создать админа' });
     }
 
-    // Хеширование пароля с настраиваемыми раундами
-    const saltRounds = parseInt(process.env.BCRYPT_ROUNDS) || 12;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    const hashedPassword = await bcrypt.hash(password, BCRYPT_ROUNDS);
+    const id = 'admin_' + crypto.randomUUID().replace(/-/g, '').slice(0, 16);
 
-    // Создание админа
-    const admin = new Admin({
-      username,
-      password: hashedPassword
+    db.insert('users', {
+      _id: id,
+      username: trimmedUsername,
+      password: hashedPassword,
+      role: 'admin',
+      tokenVersion: 0
     });
-
-    await admin.save();
 
     res.status(201).json({ message: 'Админ успешно создан' });
   } catch (error) {
-    console.error('Ошибка регистрации:', error);
+    console.error('Ошибка регистрации:', error.message);
     res.status(500).json({ message: 'Ошибка сервера' });
   }
 };
@@ -39,42 +65,41 @@ exports.register = async (req, res) => {
 // Вход админа
 exports.login = async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { username, password } = req.body || {};
 
-    if (!username || !password) {
+    if (!isString(username) || !isString(password)) {
       return res.status(400).json({ message: 'Укажите username и password' });
     }
 
-    // Поиск админа
-    const admin = await Admin.findOne({ username });
-    if (!admin) {
-      return res.status(401).json({ message: 'Неверные учетные данные' });
+    const admin = db.findOne('users', { username: username.trim() });
+
+    // Dummy hash для безопасности (чтобы не давать информацию о наличии пользователя)
+    const dummyHash = '$2b$12$abcdefghijklmnopqrstuv1234567890ABCDEFGHIJKLMNOPQRSTUV';
+    const hash = admin ? admin.password : dummyHash;
+    const isValid = await bcrypt.compare(password, hash);
+
+    if (!admin || !isValid) {
+      return res.status(401).json({ message: 'Неверные учётные данные' });
     }
 
-    // Проверка пароля
-    const isPasswordValid = await bcrypt.compare(password, admin.password);
-    if (!isPasswordValid) {
-      return res.status(401).json({ message: 'Неверные учетные данные' });
-    }
-
-    // Генерация JWT токена с настраиваемым временем жизни
-    const jwtExpiresIn = process.env.JWT_EXPIRES_IN || '7d';
     const token = jwt.sign(
-      { adminId: admin._id, username: admin.username },
-      process.env.JWT_SECRET,
-      { expiresIn: jwtExpiresIn }
+      {
+        adminId: admin._id,
+        username: admin.username,
+        tv: admin.tokenVersion || 0
+      },
+      process.env.JWT_SECRET || 'biolab-secret-key-change-in-production',
+      { expiresIn: JWT_EXPIRES_IN }
     );
 
     res.json({
       message: 'Вход выполнен успешно',
       token,
-      admin: {
-        id: admin._id,
-        username: admin.username
-      }
+      expiresIn: JWT_EXPIRES_IN,
+      admin: { id: admin._id, username: admin.username }
     });
   } catch (error) {
-    console.error('Ошибка входа:', error);
+    console.error('Ошибка входа:', error.message);
     res.status(500).json({ message: 'Ошибка сервера' });
   }
 };
@@ -82,13 +107,44 @@ exports.login = async (req, res) => {
 // Проверка токена
 exports.verify = async (req, res) => {
   try {
-    const admin = await Admin.findById(req.adminId).select('-password');
-    if (!admin) {
-      return res.status(404).json({ message: 'Админ не найден' });
-    }
-    res.json({ admin });
+    res.json({ admin: { id: req.adminId, username: req.admin.username } });
   } catch (error) {
-    console.error('Ошибка проверки токена:', error);
+    console.error('Ошибка проверки токена:', error.message);
     res.status(500).json({ message: 'Ошибка сервера' });
+  }
+};
+
+// Logout - инкрементируем tokenVersion
+exports.logout = async (req, res) => {
+  try {
+    const admin = db.findOne('users', { _id: req.adminId });
+    if (admin) {
+      db.updateOne('users', { _id: req.adminId }, { tokenVersion: (admin.tokenVersion || 0) + 1 });
+    }
+    res.json({ message: 'Выход выполнен' });
+  } catch (error) {
+    console.error('Ошибка logout:', error.message);
+    res.status(500).json({ message: 'Ошибка сервера' });
+  }
+};
+
+// Создание админа по умолчанию (для инициализации)
+exports.createDefaultAdmin = async (username, password) => {
+  try {
+    const existing = db.findOne('users', { username });
+    if (existing) return false;
+
+    const hashedPassword = await bcrypt.hash(password, BCRYPT_ROUNDS);
+    db.insert('users', {
+      _id: 'admin_' + crypto.randomUUID().replace(/-/g, '').slice(0, 16),
+      username,
+      password: hashedPassword,
+      role: 'admin',
+      tokenVersion: 0
+    });
+    return true;
+  } catch (error) {
+    console.error('Ошибка создания админа:', error.message);
+    return false;
   }
 };

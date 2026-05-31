@@ -21,7 +21,7 @@
         <style>
             /* --- ТЕМЫ САЙТА --- */
             :root {
-                --bg-color: #1a1b1e; 
+                --bg-color: #1a1b1e;
                 --text-color: #a0a0a0;
                 --heading-color: #ffffff;
                 --card-bg: rgba(255,255,255,0.05);
@@ -36,6 +36,11 @@
             body { font-family: 'Inter', sans-serif !important; background-color: var(--bg-color) !important; color: var(--text-color) !important; transition: background-color 0.5s, color 0.5s; }
             h1, h2, h3, h4, h5, h6, #main > .inner > header h1 { font-family: 'Inter', sans-serif !important; color: var(--heading-color) !important; transition: color 0.5s; }
             #main > .inner > header h1 { font-weight: 800; letter-spacing: -1px; }
+
+            /* --- МЕНЮ --- */
+            #menu { background-color: #111111 !important; color: #ffffff !important; }
+            #menu h2, #menu a, #menu .close { color: #ffffff !important; border-bottom-color: rgba(255,255,255,0.2) !important; }
+            #menu a:hover { color: #2ed573 !important; }
 
             /* --- РАЗМЕРЫ ШРИФТА --- */
             html[data-fontsize="small"] body, html[data-fontsize="small"] p, html[data-fontsize="small"] a, html[data-fontsize="small"] li { font-size: 14px !important; }
@@ -139,9 +144,63 @@
 
             /* --- ПОДВАЛ --- */
             #footer { background-color: transparent !important; padding-top: 30px !important; }
-            #footer h2 { color: var(--heading-color) !important; }
-            #footer p, #footer strong, #footer a { color: var(--text-color) !important; }
-            #footer a:hover { color: #2ed573 !important; }
+            #footer h2 { color: var(--heading-color) !important; margin-bottom: 15px !important; }
+            #footer p, #footer strong, #footer a, #footer li { color: var(--text-color) !important; }
+            #footer a:hover { color: var(--accent-color, #4caf50) !important; }
+
+            #footer .inner {
+                display: grid !important;
+                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important;
+                gap: 30px !important;
+                align-items: start !important;
+            }
+            #footer section { margin: 0 !important; }
+
+            .contacts-list { list-style: none !important; padding: 0 !important; margin: 0 !important; }
+            .contacts-list li {
+                display: flex !important;
+                align-items: center !important;
+                gap: 10px !important;
+                padding: 6px 0 !important;
+                border: none !important;
+            }
+            .contact-icon { font-size: 18px !important; flex: 0 0 auto !important; }
+            .contacts-list a { text-decoration: none !important; border-bottom: 1px solid transparent !important; transition: border-color 0.2s !important; }
+            .contacts-list a:hover { border-bottom-color: var(--accent-color, #4caf50) !important; }
+
+            .socials-list {
+                list-style: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                display: flex !important;
+                flex-wrap: wrap !important;
+                gap: 10px !important;
+            }
+            .socials-list li { padding: 0 !important; border: none !important; margin: 0 !important; }
+            .social-link {
+                display: inline-flex !important;
+                align-items: center !important;
+                gap: 8px !important;
+                padding: 8px 14px !important;
+                border-radius: 999px !important;
+                background: rgba(255,255,255,0.06) !important;
+                border: 1px solid rgba(255,255,255,0.12) !important;
+                text-decoration: none !important;
+                transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.15s !important;
+            }
+            [data-theme="light"] .social-link {
+                background: rgba(0,0,0,0.04) !important;
+                border-color: rgba(0,0,0,0.12) !important;
+            }
+            .social-link:hover {
+                background: var(--accent-color, #4caf50) !important;
+                border-color: var(--accent-color, #4caf50) !important;
+                color: #fff !important;
+                transform: translateY(-2px) !important;
+            }
+            .social-link:hover, .social-link:hover * { color: #fff !important; }
+            .social-icon { display: inline-flex !important; line-height: 0 !important; }
+            .social-icon svg { display: block !important; }
         </style>
 	</head>
 	<body class="is-preload">
@@ -169,16 +228,16 @@
                         
                         <h2>Размер текста</h2>
                         <ul>
-                            <li><a href="#" onclick="setFontSize('small'); return false;">А- Мелкий</a></li>
-                            <li><a href="#" onclick="setFontSize('normal'); return false;">А Нормальный</a></li>
-                            <li><a href="#" onclick="setFontSize('large'); return false;">А+ Крупный</a></li>
+                            <li><a href="#" data-fontsize-set="small">А- Мелкий</a></li>
+                            <li><a href="#" data-fontsize-set="normal">А Нормальный</a></li>
+                            <li><a href="#" data-fontsize-set="large">А+ Крупный</a></li>
                         </ul>
                         <br>
 
                         <h2>Настройки темы</h2>
                         <ul>
-                            <li><a href="#" onclick="setTheme('dark'); return false;">⚫ Тёмная (Базовая)</a></li>
-                            <li><a href="#" onclick="setTheme('light'); return false;">⚪ Светлая</a></li>
+                            <li><a href="#" data-theme-set="dark">⚫ Тёмная (Базовая)</a></li>
+                            <li><a href="#" data-theme-set="light">⚪ Светлая</a></li>
                         </ul>
 					</nav>
 
@@ -190,13 +249,30 @@
 								<p>Здесь мы публикуем результаты наших экспериментов, отчеты о выращивании растений в теплице и исследовательские проекты по биологии. Следите за обновлениями!</p>
 							</header>
 
-                            <!-- ПОИСК -->
-                            <div class="search-wrapper">
-                                <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <circle cx="11" cy="11" r="8"></circle>
-                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                                </svg>
-                                <input type="text" id="searchInput" placeholder="Поиск по карточкам..." autocomplete="off" />
+                            <!-- ФИЛЬТРЫ И ПОИСК -->
+                            <div class="shop-controls">
+                                <div class="category-filters" id="categoryFilters">
+                                    <button class="category-btn active" data-category="all">Все</button>
+                                </div>
+                                <div class="search-cart-row">
+                                    <div class="search-wrapper">
+                                        <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <circle cx="11" cy="11" r="8"></circle>
+                                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                        </svg>
+                                        <input type="text" id="searchInput" placeholder="Поиск..." autocomplete="off" />
+                                    </div>
+
+                                    <button class="cart-btn" data-action="open-cart">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <circle cx="9" cy="21" r="1"></circle>
+                                            <circle cx="20" cy="21" r="1"></circle>
+                                            <path d="m1 1 4 4 2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                                        </svg>
+                                        <span>Корзина</span>
+                                        <span id="cartCount" class="cart-count">0</span>
+                                    </button>
+                                </div>
                             </div>
                             <p class="search-empty-msg" id="searchEmptyMsg">Ничего не найдено по вашему запросу.</p>
                             
@@ -206,11 +282,40 @@
 
 				<footer id="footer">
 					<div class="inner">
-                        <section>
-                            <h2>Наши контакты</h2>
-                            <p>По всем вопросам работы лаборатории, теплицы и исследовательских проектов пишите нам на почту:<br>
-                            <strong><a href="mailto:almetevskbiolab@gmail.com" style="color: inherit; text-decoration: underline;">almetevskbiolab@gmail.com</a></strong></p>
-                        </section>
+                        <div class="footer-improved">
+                            <section id="aboutSection" class="footer-about">
+                                <h2>О нас</h2>
+                                <p id="aboutText">Школьная биолаборатория. Выращиваем растения в собственной теплице, проводим исследовательские проекты и продаём саженцы по доступным ценам.</p>
+                                <div class="footer-schedule" id="footerSchedule" style="display: none;">
+                                    <div id="scheduleContent"></div>
+                                </div>
+                            </section>
+                            <section class="footer-contacts">
+                                <h2>Контакты</h2>
+                                <ul id="contactsList" class="contacts-list">
+                                    <li id="contactEmail" style="display:none;">
+                                        <span class="contact-icon" aria-hidden="true">✉️</span>
+                                        <a id="emailLink" href="#"></a>
+                                    </li>
+                                    <li id="contactPhone" style="display:none;">
+                                        <span class="contact-icon" aria-hidden="true">📞</span>
+                                        <a id="phoneLink" href="#"></a>
+                                    </li>
+                                    <li id="contactAddress" style="display:none;">
+                                        <span class="contact-icon" aria-hidden="true">📍</span>
+                                        <span id="addressText"></span>
+                                    </li>
+                                    <li id="contactHours" style="display:none;">
+                                        <span class="contact-icon" aria-hidden="true">🕐</span>
+                                        <span id="hoursText"></span>
+                                    </li>
+                                </ul>
+                            </section>
+                            <section id="socialsSection" class="footer-socials" style="display:none;">
+                                <h2>Мы в соцсетях</h2>
+                                <ul id="socialsList" class="socials-list"></ul>
+                            </section>
+                        </div>
 					</div>
 				</footer>
 			</div>
@@ -223,47 +328,73 @@
             
             <script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.umd.js"></script>
 
-            <script>
-                // ЛОГИКА ТЕМ И ШРИФТОВ
-                function setTheme(themeName) { document.documentElement.setAttribute('data-theme', themeName); try { localStorage.setItem('siteTheme', themeName); } catch(e) {} }
-                try { setTheme(localStorage.getItem('siteTheme') || 'dark'); } catch(e) { setTheme('dark'); }
+            <script src="assets/js/theme.js"></script>
+            <script src="assets/js/site-settings.js"></script>
 
-                function setFontSize(size) { document.documentElement.setAttribute('data-fontsize', size); try { localStorage.setItem('siteFontSize', size); } catch(e) {} }
-                try { setFontSize(localStorage.getItem('siteFontSize') || 'normal'); } catch(e) { setFontSize('normal'); }
-            </script>
-
-            <!-- Модальное окно заказа -->
-            <div id="orderModal" class="modal">
+            <!-- Модальное окно корзины -->
+            <div id="cartModal" class="modal">
                 <div class="modal-content">
-                    <span class="modal-close" onclick="closeOrderModal()">&times;</span>
-                    <h2>Оформление заказа</h2>
-                    <div class="product-info">
-                        <p><strong id="modalProductTitle"></strong></p>
-                        <p class="price" id="modalProductPrice"></p>
+                    <span class="modal-close" data-action="close-cart">&times;</span>
+                    <h2>Корзина</h2>
+                    <div id="cartItems" class="cart-items">
+                        <!-- Товары корзины будут добавлены через JS -->
                     </div>
-                    <form id="orderForm" class="order-form" onsubmit="submitOrder(event)">
-                        <input type="hidden" id="orderProductId" name="productId">
-                        <input type="hidden" id="orderProductTitle" name="productTitle">
-                        <input type="hidden" id="orderProductPrice" name="productPrice">
+                    <div class="empty-cart-state" id="emptyCartState" style="display: none;">
+                        <div class="empty-icon">
+                            <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="35" cy="70" r="6" fill="#2ed573" opacity="0.5"/>
+                                <circle cx="65" cy="70" r="6" fill="#2ed573" opacity="0.5"/>
+                                <path d="M20 25 L25 25 L30 65 L70 65 L75 25 L80 25" stroke="#2ed573" stroke-width="3" fill="none" opacity="0.3"/>
+                                <path d="M10 10 L90 10 L85 65 L15 65 Z" stroke="#2ed573" stroke-width="3" fill="none" opacity="0.5"/>
+                                <path d="M30 30 Q50 10 70 30" stroke="#2ed573" stroke-width="2" fill="none" opacity="0.3"/>
+                                <circle cx="50" cy="50" r="15" fill="none" stroke="#2ed573" stroke-width="2" opacity="0.3"/>
+                                <text x="50" y="55" text-anchor="middle" fill="#2ed573" font-size="14" opacity="0.5">+</text>
+                            </svg>
+                        </div>
+                        <h3>Корзина пуста</h3>
+                        <p>Добавьте растения из нашего каталога</p>
+                        <button class="browse-btn" data-action="close-cart">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 19V5M5 12l7-7 7 7"/>
+                            </svg>
+                            Перейти к растениям
+                        </button>
+                    </div>
+                    <div class="cart-total" id="cartTotalSection">
+                        <strong>Итого: <span id="cartTotal">0 ₽</span></strong>
+                    </div>
+                    <div class="cart-actions" id="cartActionsSection">
+                        <button data-action="clear-cart" class="clear-btn">Очистить корзину</button>
+                        <button id="checkoutBtn" data-action="open-checkout" class="checkout-btn">Оформить заказ</button>
+                    </div>
+                </div>
+            </div>
 
+            <!-- Модальное окно оформления заказа -->
+            <div id="checkoutModal" class="modal">
+                <div class="modal-content">
+                    <span class="modal-close" data-action="close-checkout">&times;</span>
+                    <h2>Оформление заказа</h2>
+
+                    <div class="order-summary">
+                        <h3>Ваш заказ:</h3>
+                        <div id="checkoutItems" class="checkout-items">
+                            <!-- Товары заказа будут добавлены через JS -->
+                        </div>
+                        <div class="checkout-total">
+                            <strong>Итого: <span id="checkoutTotal">0 ₽</span></strong>
+                        </div>
+                    </div>
+
+                    <form id="checkoutForm" class="checkout-form">
                         <div class="form-group">
                             <label for="customerName">Ваше имя *</label>
-                            <input type="text" id="customerName" name="customerName" required placeholder="Иван Иванов">
+                            <input type="text" id="customerName" name="customerName" required minlength="2" maxlength="100" placeholder="Иван Иванов">
                         </div>
 
                         <div class="form-group">
                             <label for="customerPhone">Телефон *</label>
-                            <input type="tel" id="customerPhone" name="customerPhone" required placeholder="+7 (999) 123-45-67">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="customerEmail">Email *</label>
-                            <input type="email" id="customerEmail" name="customerEmail" required placeholder="example@mail.com">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="quantity">Количество</label>
-                            <input type="number" id="quantity" name="quantity" min="1" value="1" required>
+                            <input type="tel" id="customerPhone" name="customerPhone" required maxlength="32" placeholder="+7 (999) 123-45-67">
                         </div>
 
                         <button type="submit" class="submit-btn">Оформить заказ</button>
@@ -274,31 +405,61 @@
             <!-- Модальное окно успешного заказа -->
             <div id="successModal" class="modal">
                 <div class="modal-content success-content">
-                    <span class="modal-close" onclick="closeSuccessModal()">&times;</span>
+                    <span class="modal-close" data-action="close-success">&times;</span>
                     <div class="success-icon">✓</div>
                     <h2>Заказ успешно оформлен!</h2>
 
                     <div class="order-info">
-                        <p>Номер заказа:</p>
-                        <p><strong id="orderNumber"></strong></p>
-                        <p style="margin-top: 15px;">QR-код отправлен на email: <strong id="orderEmail"></strong></p>
+                        <p>Код заказа:</p>
+                        <p class="order-code"><strong id="orderCode"></strong></p>
+                        <p>Сумма: <strong id="orderTotal"></strong></p>
                     </div>
 
-                    <div class="qr-code">
-                        <img id="qrCodeImage" src="" alt="QR код заказа">
+                    <div id="orderQRContainer" style="display:none;margin:15px 0;">
+                        <p style="margin-bottom:10px;">QR-код для сканирования:</p>
+                        <img id="orderQR" src="" alt="QR-код заказа" style="width:150px;height:150px;border-radius:8px;border:2px solid #2ed573;">
+                        <p style="font-size:12px;color:#666;margin-top:5px;">Сохраните или сфотографируйте</p>
                     </div>
 
                     <div class="instructions">
                         <h3>Что дальше?</h3>
                         <ol>
-                            <li>Сохраните QR-код (скриншот или письмо на email)</li>
+                            <li>Запишите или сфотографируйте код заказа</li>
                             <li>Приходите в школьную теплицу</li>
-                            <li>Покажите QR-код администратору</li>
+                            <li>Назовите код администратору</li>
                             <li>Оплатите и получите ваш заказ</li>
                         </ol>
                     </div>
 
-                    <button class="close-success-btn" onclick="closeSuccessModal()">Закрыть</button>
+                    <button class="close-success-btn" data-action="close-success">Закрыть</button>
+                </div>
+            </div>
+
+            <!-- МОДАЛКА КАРТОЧКИ ТОВАРА (стиль маркетплейса) -->
+            <div id="productModal" class="product-modal">
+                <div class="product-modal-content">
+                    <button class="product-modal-close" data-action="close-product">&times;</button>
+                    <div class="product-layout">
+                        <div class="product-gallery">
+                            <div class="product-gallery-viewport" id="productModalGallery">
+                                <!-- Слайды -->
+                            </div>
+                            <div class="product-gallery-thumbs" id="productModalThumbs"></div>
+                        </div>
+                        <div class="product-info">
+                            <span id="productModalCategory" class="product-modal-category"></span>
+                            <h2 id="productModalTitle"></h2>
+                            <div id="productModalStock" class="product-modal-stock"></div>
+                            <div id="productModalPrice" class="product-modal-price"></div>
+                            <div id="productModalDesc" class="product-modal-desc"></div>
+                            <div class="product-modal-actions">
+                                <button id="productModalCartBtn" class="add-to-cart-btn" data-action="add-to-cart">В корзину</button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Навигация между товарами -->
+                    <button class="product-nav prev" data-action="product-prev" title="Предыдущий">&larr;</button>
+                    <button class="product-nav next" data-action="product-next" title="Следующий">&rarr;</button>
                 </div>
             </div>
 

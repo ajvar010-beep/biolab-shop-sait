@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Управление заказами - Biolab Admin</title>
+    <title>Управление заказами — Biolab Admin</title>
     <link rel="stylesheet" href="css/admin.css">
 </head>
 <body>
@@ -14,90 +14,94 @@
                 <p id="adminUsername">Администратор</p>
             </div>
             <nav class="sidebar-nav">
-                <a href="index.html">
-                    <span>📊</span>
-                    <span>Главная</span>
-                </a>
-                <a href="products.html">
-                    <span>🌿</span>
-                    <span>Товары</span>
-                </a>
-                <a href="orders.html" class="active">
-                    <span>📦</span>
-                    <span>Заказы</span>
-                </a>
-                <a href="categories.html">
-                    <span>📁</span>
-                    <span>Категории</span>
-                </a>
-                <a href="#" id="logoutBtn">
-                    <span>🚪</span>
-                    <span>Выход</span>
-                </a>
+                <a href="index.html"><span aria-hidden="true">📊</span><span>Главная</span></a>
+                <a href="products.html"><span aria-hidden="true">🌿</span><span>Товары</span></a>
+                <a href="orders.html" class="active"><span aria-hidden="true">📦</span><span>Заказы</span></a>
+                <a href="categories.html"><span aria-hidden="true">📁</span><span>Категории</span></a>
+                <a href="settings.html"><span aria-hidden="true">⚙️</span><span>Настройки</span></a>
+                <a href="#" id="logoutBtn"><span aria-hidden="true">🚪</span><span>Выход</span></a>
             </nav>
         </aside>
 
         <main class="main-content">
             <div class="header">
                 <h1>Управление заказами</h1>
-                <button class="btn btn-primary" id="scanQrBtn">📷 Сканировать QR</button>
+                <div style="display:flex;gap:10px;">
+                    <button class="btn btn-primary" id="scanQrBtn">📷 Сканировать QR</button>
+                    <button class="btn btn-secondary" id="manualQrBtn">⌨️ Ввести код</button>
+                </div>
             </div>
 
             <div class="card">
                 <div class="card-header">
                     <h2>Все заказы</h2>
-                    <div style="display: flex; gap: 10px;">
-                        <select id="statusFilter" style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px;">
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                        <label class="visually-hidden" for="statusFilter">Статус</label>
+                        <select id="statusFilter" style="padding:8px 12px;border:1px solid var(--border-color);border-radius:8px;">
                             <option value="">Все статусы</option>
                             <option value="pending">Ожидают</option>
                             <option value="completed">Выданы</option>
                             <option value="cancelled">Отменены</option>
                         </select>
-                        <input type="text" id="searchInput" placeholder="Поиск по номеру или имени..." style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; min-width: 250px;">
+                        <label class="visually-hidden" for="searchInput">Поиск</label>
+                        <input type="text" id="searchInput" placeholder="Поиск по номеру или имени..." style="padding:8px 12px;border:1px solid var(--border-color);border-radius:8px;min-width:250px;">
                     </div>
                 </div>
-                <div id="ordersContainer">
-                    <div class="loading">Загрузка заказов...</div>
-                </div>
+                <div id="ordersContainer"><div class="loading">Загрузка заказов...</div></div>
             </div>
         </main>
     </div>
 
-    <!-- Модальное окно просмотра заказа -->
-    <div id="orderModal" class="modal">
+    <div id="orderModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalOrderTitle">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Заказ <span id="modalOrderNumber"></span></h2>
-                <button class="close-modal" id="closeModal">&times;</button>
+                <h2 id="modalOrderTitle">Заказ <span id="modalOrderNumber"></span></h2>
+                <button class="close-modal" id="closeModal" type="button" aria-label="Закрыть">&times;</button>
             </div>
-            <div id="orderDetails">
-                <!-- Детали заказа будут загружены сюда -->
+            <div id="orderDetails"></div>
+        </div>
+    </div>
+
+    <div id="qrScanModal" class="modal" role="dialog" aria-modal="true">
+        <div class="modal-content" style="max-width:500px;">
+            <div class="modal-header">
+                <h2>Сканировать QR-код</h2>
+                <button class="close-modal" id="closeQrModal" type="button" aria-label="Закрыть">&times;</button>
+            </div>
+            <div style="padding:20px;">
+                <div id="qr-reader" style="width:100%;"></div>
+                <div id="qrMessage" style="display:none;margin-top:15px;" role="alert" aria-live="polite"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="cancelQrBtn">Отмена</button>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Модальное окно сканирования QR -->
-    <div id="qrScanModal" class="modal">
+    <div id="qrManualModal" class="modal" role="dialog" aria-modal="true">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Сканирование QR-кода</h2>
-                <button class="close-modal" id="closeQrModal">&times;</button>
+                <h2>Поиск заказа по коду</h2>
+                <button class="close-modal" id="closeQrManualModal" type="button" aria-label="Закрыть">&times;</button>
             </div>
-            <div style="padding: 20px;">
-                <p style="margin-bottom: 15px;">Введите номер заказа из QR-кода:</p>
+            <div style="padding:20px;">
+                <p style="margin-bottom:15px;">Введите 9-12-значный код заказа:</p>
                 <div class="form-group">
-                    <input type="text" id="qrOrderNumber" placeholder="Например: ORD-1234567890" style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1.1rem;">
+                    <label class="visually-hidden" for="qrOrderNumber">Код заказа</label>
+                    <input type="text" id="qrOrderNumber" inputmode="numeric" pattern="\d{9,12}" maxlength="12" placeholder="Например: 123456789012" style="width:100%;padding:12px;border:1px solid var(--border-color);border-radius:8px;font-size:1.1rem;text-align:center;letter-spacing:2px;">
                 </div>
-                <div id="qrMessage" style="display: none; margin-top: 15px;"></div>
+                <div id="qrManualMessage" style="display:none;margin-top:15px;" role="alert" aria-live="polite"></div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" id="cancelQrBtn">Отмена</button>
+                    <button type="button" class="btn btn-secondary" id="cancelQrManualBtn">Отмена</button>
                     <button type="button" class="btn btn-primary" id="findOrderBtn">Найти заказ</button>
                 </div>
             </div>
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <script src="js/auth.js"></script>
+    <script src="js/ui.js"></script>
     <script src="js/orders.js"></script>
 </body>
 </html>

@@ -1,224 +1,361 @@
-const Order = require('../models/Order');
-const Product = require('../models/Product');
-const mongoose = require('mongoose');
-const { generateQRCode } = require('../utils/qrGenerator');
-const { sendOrderEmail } = require('../utils/emailSender');
+/**
+ * Order Controller - SQLite версия
+ */
+const crypto = require('crypto');
+const db = require('../config/database');
 
-// Функция валидации ObjectId
-const isValidObjectId = (id) => {
-  return mongoose.Types.ObjectId.isValid(id);
-};
+function generateOrderCode() {
+  const min = 100000000000;
+  const max = 1000000000000;
+  return String(crypto.randomInt(min, max));
+}
+
+const PHONE_REGEX = /^\+?[\d\s().-]{7,20}$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function sanitizeName(name) {
+  return String(name || '')
+    .replace(/[\x00-\x1f\x7f]/g, '')
+    .replace(/<[^>]*>/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 
 // Создать заказ
 exports.createOrder = async (req, res) => {
   try {
-    const { customerName, customerPhone, customerEmail, items } = req.body;
+    const body = req.body || {};
+    const items = Array.isArray(body.items) ? body.items : null;
 
-    if (!customerName || !customerPhone || !customerEmail || !items || items.length === 0) {
-      return res.status(400).json({ message: 'Заполните все поля и добавьте товары' });
+    if (!items || items.length === 0) {
+      return res.status(400).json({ message: 'Корзина пуста' });
+    }
+    if (items.length > 10) {
+      return res.status(400).json({ message: 'Слишком много позиций (максимум 10)' });
     }
 
-    // Валидация имени
+    const customerName = sanitizeName(body.customerName);
     if (customerName.length < 2 || customerName.length > 100) {
-      return res.status(400).json({ message: 'Имя должно содержать от 2 до 100 символов' });
+      return res.status(400).json({ message: 'Имя: от 2 до 100 символов' });
     }
 
-    // Валидация телефона (российский формат)
-    const phoneRegex = /^(\+7|7|8)?[\s\-]?\(?[489][0-9]{2}\)?[\s\-]?[0-9]{3}[\s\-]?[0-9]{2}[\s\-]?[0-9]{2}$/;
-    if (!phoneRegex.test(customerPhone.replace(/\s/g, ''))) {
+    if (typeof body.customerPhone !== 'string') {
+      return res.status(400).json({ message: 'Телефон обязателен' });
+    }
+    const customerPhone = body.customerPhone.trim();
+    if (!PHONE_REGEX.test(customerPhone)) {
       return res.status(400).json({ message: 'Неверный формат телефона' });
     }
 
-    // Валидация email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(customerEmail) || customerEmail.length > 254) {
-      return res.status(400).json({ message: 'Неверный формат email' });
+    let customerEmail = '';
+    if (typeof body.customerEmail === 'string' && body.customerEmail.trim()) {
+      customerEmail = body.customerEmail.trim().toLowerCase();
+      if (!EMAIL_REGEX.test(customerEmail) || customerEmail.length > 254) {
+        return res.status(400).json({ message: 'Неверный email' });
+      }
     }
 
-    // Валидация количества товаров в заказе
-    if (items.length > 50) {
-      return res.status(400).json({ message: 'Слишком много товаров в заказе (максимум 50)' });
+    const requested = [];
+    for (const it of items) {
+      if (!it || !it.productId || typeof it.productId !== 'string') {
+        return res.status(400).json({ message: 'Неверный ID товара' });
+      }
+      const qty = Math.floor(Number(it.quantity));
+      if (!Number.isFinite(qty) || qty < 1 || qty > 100) {
+        return res.status(400).json({ message: 'Неверное количество (1-100)' });
+      }
+      requested.push({ productId: it.productId, quantity: qty });
     }
 
-    // Проверка наличия товаров и расчет суммы
-    let totalAmount = 0;
     const orderItems = [];
+    let totalAmount = 0;
+    const reservedItems = [];
 
-    for (const item of items) {
-      // Валидация ObjectId товара
-      if (!isValidObjectId(item.productId)) {
-        return res.status(400).json({ message: `Неверный формат ID товара: ${item.productId}` });
-      }
+    // Обрабатываем каждый товар
+    for (const { productId, quantity } of requested) {
+      const product = db.findOne('products', { _id: productId });
 
-      const product = await Product.findById(item.productId);
       if (!product) {
-        return res.status(404).json({ message: `Товар с ID ${item.productId} не найден` });
+        // Откатываем зарезервированные
+        for (const r of reservedItems) {
+          const p = db.findOne('products', { _id: r.productId });
+          if (p) {
+            db.updateOne('products', { _id: r.productId }, { stock: p.stock + r.quantity });
+          }
+        }
+        return res.status(400).json({ message: `Товар не найден: ${productId}` });
       }
 
-      // Валидация количества товара
-      if (!item.quantity || item.quantity < 1 || item.quantity > 100) {
-        return res.status(400).json({ message: `Неверное количество товара (должно быть от 1 до 100)` });
-      }
-
-      if (product.stock < item.quantity) {
+      if (product.stock < quantity) {
+        // Откатываем зарезервированные
+        for (const r of reservedItems) {
+          const p = db.findOne('products', { _id: r.productId });
+          if (p) {
+            db.updateOne('products', { _id: r.productId }, { stock: p.stock + r.quantity });
+          }
+        }
         return res.status(400).json({
-          message: `Недостаточно товара "${product.title}". В наличии: ${product.stock}`
+          message: `Недостаточно товара "${product.title}" (в наличии: ${product.stock})`
         });
       }
+
+      // Резервируем товар
+      db.updateOne('products', { _id: productId }, { stock: product.stock - quantity });
+      reservedItems.push({ productId, quantity });
 
       orderItems.push({
         productId: product._id,
         title: product.title,
         price: product.price,
-        quantity: item.quantity
+        quantity
       });
-
-      totalAmount += product.price * item.quantity;
-
-      // Уменьшаем остаток товара
-      product.stock -= item.quantity;
-      await product.save();
+      totalAmount += product.price * quantity;
     }
 
-    // Генерация уникального номера заказа
-    const orderNumber = 'BL' + Date.now() + Math.floor(Math.random() * 1000);
+    // Генерируем уникальный код заказа
+    let orderCode = null;
+    for (let i = 0; i < 5; i++) {
+      const candidate = generateOrderCode();
+      const exists = db.findOne('orders', { orderCode: candidate });
+      if (!exists) {
+        orderCode = candidate;
+        break;
+      }
+    }
+    if (!orderCode) {
+      return res.status(500).json({ message: 'Не удалось сгенерировать код заказа' });
+    }
 
-    // Генерация QR-кода
-    const qrCode = await generateQRCode(orderNumber);
+    const orderId = 'order_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    const now = new Date().toISOString();
 
-    // Создание заказа
-    const order = new Order({
-      orderNumber,
+    const orderData = {
+      _id: orderId,
+      orderCode,
       customerName,
       customerPhone,
       customerEmail,
-      items: orderItems,
+      items: JSON.stringify(orderItems),
       totalAmount,
-      qrCode
-    });
+      totalPrice: totalAmount,
+      status: 'pending',
+      createdAt: now,
+      updatedAt: now
+    };
 
-    await order.save();
-
-    // Отправка email с QR-кодом
-    try {
-      await sendOrderEmail(customerEmail, orderNumber, qrCode, {
-        customerName,
-        customerPhone,
-        items: orderItems,
-        totalAmount
-      });
-    } catch (emailError) {
-      console.error('Ошибка отправки email:', emailError);
-      // Заказ уже создан, продолжаем
-    }
+    db.insert('orders', orderData);
 
     res.status(201).json({
       message: 'Заказ успешно создан',
       order: {
-        orderNumber,
-        qrCode,
+        orderCode,
         totalAmount,
+        totalPrice: totalAmount,
         items: orderItems
       }
     });
   } catch (error) {
-    console.error('Ошибка создания заказа:', error);
+    console.error('Ошибка создания заказа:', error.message);
     res.status(500).json({ message: 'Ошибка сервера' });
   }
 };
 
-// Получить все заказы (только для админа)
+// Все заказы (админ)
 exports.getAllOrders = async (req, res) => {
   try {
     const { status } = req.query;
-    let query = {};
-
-    if (status) {
+    const query = {};
+    if (typeof status === 'string' && ['pending', 'completed', 'cancelled'].includes(status)) {
       query.status = status;
     }
 
-    const orders = await Order.find(query)
-      .populate('items.productId', 'title')
-      .sort({ createdAt: -1 });
+    let orders = db.find('orders', query);
+    orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-    res.json(orders);
+    const skip = Math.max(parseInt(req.query.skip, 10) || 0, 0);
+    const limit = Math.min(parseInt(req.query.limit, 10) || 200, 500);
+
+    // Парсим items
+    orders = orders.slice(skip, skip + limit).map(o => {
+      if (o.items && typeof o.items === 'string') {
+        try { o.items = JSON.parse(o.items); } catch (_) { o.items = []; }
+      }
+      return o;
+    });
+
+    const total = db.countDocuments('orders', query);
+    res.json({ orders, total, limit, skip });
   } catch (error) {
-    console.error('Ошибка получения заказов:', error);
+    console.error('Ошибка получения заказов:', error.message);
     res.status(500).json({ message: 'Ошибка сервера' });
   }
 };
 
-// Получить заказ по номеру
-exports.getOrderByNumber = async (req, res) => {
+// Найти заказ по коду (публичный)
+exports.getOrderByCode = async (req, res) => {
   try {
-    const order = await Order.findOne({ orderNumber: req.params.orderNumber })
-      .populate('items.productId', 'title imageUrl');
+    const code = String(req.params.orderCode || '');
+    if (!/^\d{9,12}$/.test(code)) {
+      return res.status(400).json({ message: 'Неверный формат кода' });
+    }
 
-    if (!order) {
-      return res.status(404).json({ message: 'Заказ не найден' });
+    const order = db.findOne('orders', { orderCode: code });
+    if (!order) return res.status(404).json({ message: 'Заказ не найден' });
+
+    const items = order.items && typeof order.items === 'string'
+      ? JSON.parse(order.items)
+      : (order.items || []);
+
+    res.json({
+      orderCode: order.orderCode,
+      status: order.status,
+      items,
+      totalAmount: order.totalAmount || order.totalPrice,
+      createdAt: order.createdAt,
+      completedAt: order.completedAt
+    });
+  } catch (error) {
+    console.error('Ошибка получения заказа:', error.message);
+    res.status(500).json({ message: 'Ошибка сервера' });
+  }
+};
+
+// Найти заказы по телефону
+exports.getOrdersByPhone = async (req, res) => {
+  try {
+    const phone = String(req.params.phone || '').trim();
+    if (!PHONE_REGEX.test(phone)) {
+      return res.status(400).json({ message: 'Неверный формат телефона' });
+    }
+
+    let orders = db.find('orders', { customerPhone: phone });
+    orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    orders = orders.slice(0, 50);
+
+    const publicOrders = orders.map(order => {
+      const items = order.items && typeof order.items === 'string'
+        ? JSON.parse(order.items)
+        : (order.items || []);
+
+      return {
+        orderCode: order.orderCode,
+        status: order.status,
+        items,
+        totalAmount: order.totalAmount || order.totalPrice,
+        createdAt: order.createdAt,
+        completedAt: order.completedAt,
+        cancelledAt: order.cancelledAt
+      };
+    });
+
+    res.json({ orders: publicOrders, count: publicOrders.length });
+  } catch (error) {
+    console.error('Ошибка поиска заказов:', error.message);
+    res.status(500).json({ message: 'Ошибка сервера' });
+  }
+};
+
+// Полная информация о заказе (админ)
+exports.getOrderByCodeAdmin = async (req, res) => {
+  try {
+    const code = String(req.params.orderCode || '');
+    if (!/^\d{9,12}$/.test(code)) {
+      return res.status(400).json({ message: 'Неверный формат кода' });
+    }
+
+    const order = db.findOne('orders', { orderCode: code });
+    if (!order) return res.status(404).json({ message: 'Заказ не найден' });
+
+    if (order.items && typeof order.items === 'string') {
+      try { order.items = JSON.parse(order.items); } catch (_) { order.items = []; }
     }
 
     res.json(order);
   } catch (error) {
-    console.error('Ошибка получения заказа:', error);
+    console.error('Ошибка получения заказа (админ):', error.message);
     res.status(500).json({ message: 'Ошибка сервера' });
   }
 };
 
-// Обновить статус заказа (только для админа)
-exports.updateOrderStatus = async (req, res) => {
+// Отметить заказ выданным
+exports.completeOrder = async (req, res) => {
   try {
-    const { status } = req.body;
-
-    if (!['pending', 'completed', 'cancelled'].includes(status)) {
-      return res.status(400).json({ message: 'Недопустимый статус' });
+    const code = String(req.params.orderCode || '');
+    if (!/^\d{9,12}$/.test(code)) {
+      return res.status(400).json({ message: 'Неверный формат кода' });
     }
 
-    const order = await Order.findOne({ orderNumber: req.params.orderNumber });
+    const order = db.findOne('orders', { orderCode: code, status: 'pending' });
     if (!order) {
-      return res.status(404).json({ message: 'Заказ не найден' });
+      return res.status(400).json({ message: 'Заказ нельзя выдать (уже выдан, отменён или не найден)' });
     }
 
-    order.status = status;
-    if (status === 'completed') {
-      order.completedAt = new Date();
+    const now = new Date().toISOString();
+    db.updateOne('orders', { _id: order._id }, {
+      status: 'completed',
+      completedAt: now,
+      updatedAt: now
+    });
+
+    const updated = db.findOne('orders', { _id: order._id });
+    if (updated.items && typeof updated.items === 'string') {
+      try { updated.items = JSON.parse(updated.items); } catch (_) { updated.items = []; }
     }
 
-    await order.save();
-    res.json({ message: 'Статус заказа обновлен', order });
+    res.json({ message: 'Заказ выдан', order: updated });
   } catch (error) {
-    console.error('Ошибка обновления статуса:', error);
+    console.error('Ошибка выдачи заказа:', error.message);
     res.status(500).json({ message: 'Ошибка сервера' });
   }
 };
 
-// Отменить заказ и вернуть товары на склад (только для админа)
+// Отменить заказ
 exports.cancelOrder = async (req, res) => {
   try {
-    const order = await Order.findOne({ orderNumber: req.params.orderNumber });
-    if (!order) {
-      return res.status(404).json({ message: 'Заказ не найден' });
+    const code = String(req.params.orderCode || '');
+    if (!/^\d{9,12}$/.test(code)) {
+      return res.status(400).json({ message: 'Неверный формат кода' });
     }
 
-    if (order.status === 'completed') {
-      return res.status(400).json({ message: 'Нельзя отменить выполненный заказ' });
+    const reason = typeof req.body?.reason === 'string'
+      ? req.body.reason.slice(0, 500)
+      : '';
+
+    const order = db.findOne('orders', { orderCode: code, status: 'pending' });
+    if (!order) {
+      return res.status(400).json({ message: 'Заказ нельзя отменить (уже выдан, отменён или не найден)' });
     }
 
     // Возвращаем товары на склад
-    for (const item of order.items) {
-      const product = await Product.findById(item.productId);
+    const items = order.items && typeof order.items === 'string'
+      ? JSON.parse(order.items)
+      : (order.items || []);
+
+    for (const item of items) {
+      const product = db.findOne('products', { _id: item.productId });
       if (product) {
-        product.stock += item.quantity;
-        await product.save();
+        db.updateOne('products', { _id: item.productId }, {
+          stock: product.stock + item.quantity
+        });
       }
     }
 
-    order.status = 'cancelled';
-    await order.save();
+    const now = new Date().toISOString();
+    db.updateOne('orders', { _id: order._id }, {
+      status: 'cancelled',
+      cancelledAt: now,
+      cancelReason: reason,
+      updatedAt: now
+    });
 
-    res.json({ message: 'Заказ отменен, товары возвращены на склад', order });
+    const updated = db.findOne('orders', { _id: order._id });
+    if (updated.items && typeof updated.items === 'string') {
+      try { updated.items = JSON.parse(updated.items); } catch (_) { updated.items = []; }
+    }
+
+    res.json({ message: 'Заказ отменён, товары возвращены', order: updated });
   } catch (error) {
-    console.error('Ошибка отмены заказа:', error);
+    console.error('Ошибка отмены заказа:', error.message);
     res.status(500).json({ message: 'Ошибка сервера' });
   }
 };
