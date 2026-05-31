@@ -84,6 +84,10 @@ class SQLiteDB {
         totalPrice REAL NOT NULL,
         totalAmount REAL,
         status TEXT DEFAULT 'pending',
+        completedAt TEXT,
+        cancelledAt TEXT,
+        cancelReason TEXT,
+        qrCode TEXT,
         createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
         updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
       );
