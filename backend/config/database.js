@@ -82,6 +82,7 @@ class SQLiteDB {
         customerEmail TEXT,
         items TEXT NOT NULL,
         totalPrice REAL NOT NULL,
+        totalAmount REAL,
         status TEXT DEFAULT 'pending',
         createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
         updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
