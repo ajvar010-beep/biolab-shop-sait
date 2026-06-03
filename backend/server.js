@@ -214,21 +214,25 @@ app.use((error, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 3000;
-const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Сервер запущен на порту ${PORT}`);
-  console.log(`📱 Локальный доступ: http://localhost:${PORT}`);
-  console.log(`🌐 Режим: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🗄️ База данных: SQLite (${DB_PATH})`);
-});
 
-// Graceful shutdown
-function shutdown(signal) {
-  console.log(`\n${signal} получен, останавливаемся...`);
-  db.close();
-  server.close(() => process.exit(0));
-  setTimeout(() => process.exit(1), 10000).unref();
+// Запускаем сервер только при прямом запуске (не при импорте из тестов)
+if (require.main === module) {
+  const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Сервер запущен на порту ${PORT}`);
+    console.log(`📱 Локальный доступ: http://localhost:${PORT}`);
+    console.log(`🌐 Режим: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`🗄️ База данных: SQLite (${DB_PATH})`);
+  });
+
+  // Graceful shutdown
+  function shutdown(signal) {
+    console.log(`\n${signal} получен, останавливаемся...`);
+    db.close();
+    server.close(() => process.exit(0));
+    setTimeout(() => process.exit(1), 10000).unref();
+  }
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
 }
-process.on('SIGTERM', () => shutdown('SIGTERM'));
-process.on('SIGINT', () => shutdown('SIGINT'));
 
 module.exports = app;

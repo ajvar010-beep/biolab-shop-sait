@@ -76,25 +76,34 @@ const createRateLimiter = (windowMs, max, message) => rateLimit({
   }
 });
 
-const authLimiter = createRateLimiter(
+// Rate limiting отключён для тестов
+const authLimiter = process.env.NODE_ENV === 'test'
+  ? (req, res, next) => next()
+  : createRateLimiter(
   15 * 60 * 1000,
   10,
   'Слишком много попыток входа. Попробуйте через 15 минут'
 );
 
-const orderLimiter = createRateLimiter(
+const orderLimiter = process.env.NODE_ENV === 'test'
+  ? (req, res, next) => next()
+  : createRateLimiter(
   60 * 1000,
   5,
   'Слишком много заказов. Подождите минуту'
 );
 
-const adminLimiter = createRateLimiter(
+const adminLimiter = process.env.NODE_ENV === 'test'
+  ? (req, res, next) => next()
+  : createRateLimiter(
   60 * 1000,
   60,
   'Слишком много запросов к админ-панели'
 );
 
-const orderLookupLimiter = createRateLimiter(
+const orderLookupLimiter = process.env.NODE_ENV === 'test'
+  ? (req, res, next) => next()
+  : createRateLimiter(
   60 * 1000,
   20,
   'Слишком много запросов поиска заказа'
