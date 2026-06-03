@@ -717,35 +717,39 @@
     box-shadow: 0 6px 20px rgba(46, 213, 115, 0.4);
 }
 
-/* УЛУЧШЕННЫЙ ХЕДЕР */
-#header {
+/* УЛУЧШЕННЫЙ ХЕДЕР - используем body #wrapper > header для максимальной специфичности */
+body #wrapper > header#header {
     position: sticky;
     top: 0;
     z-index: 1000;
     background: var(--bg-color);
     transition: padding 0.3s ease, box-shadow 0.3s ease;
-    padding: 1.5em 0 0.5em 0 !important;
+    padding: 1.5em 0 0.5em 0;
 }
 
-#header.scrolled {
+/* Scrolled состояние хедера */
+body #wrapper > header#header.scrolled {
     box-shadow: 0 2px 20px rgba(0, 0, 0, 0.15);
-    padding: 0.8em 0 0.4em 0 !important;
+    padding: 0.8em 0 0.4em 0;
 }
 
-[data-theme="light"] #header.scrolled {
+/* Светлая тема - scrolled хедер */
+html[data-theme="light"] body #wrapper > header#header.scrolled {
     box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
 }
 
-#header.scrolled .logo .title {
+/* Логотип в scrolled состоянии */
+body #wrapper > header#header.scrolled .logo .title {
     font-size: 18px;
 }
 
-#header.scrolled .logo .symbol img {
+body #wrapper > header#header.scrolled .logo .symbol img {
     width: 1.5em;
     height: 1.5em;
 }
 
-#header .logo .title {
+/* Плавный переход размера логотипа */
+body #wrapper > header#header .logo .title {
     transition: font-size 0.3s ease;
 }
 
@@ -925,17 +929,17 @@
 .tiles article:nth-child(n+11) { animation-delay: 0.55s; }
 
 /* Улучшенные hover-эффекты */
-.tiles article {
+body #wrapper #main .tiles article {
     transition: transform 0.4s ease, box-shadow 0.4s ease;
 }
 
-.tiles article:hover {
+body #wrapper #main .tiles article:hover {
     transform: translateY(-8px) scale(1.02);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3) !important;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
 }
 
-[data-theme="light"] .tiles article:hover {
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15) !important;
+html[data-theme="light"] body #wrapper #main .tiles article:hover {
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
 }
 
 /* Эффект наведения на кнопку корзины */
@@ -1318,12 +1322,12 @@
     color: #666;
 }
 
-[data-theme="light"] .product-info h2 {
-    color: #2c3e50 !important;
+[data-theme="light"] body .product-modal .product-info h2 {
+    color: #2c3e50;
 }
 
-[data-theme="light"] .product-modal-desc {
-    color: #585858 !important;
+[data-theme="light"] body .product-modal .product-modal-desc {
+    color: #585858;
 }
 
 [data-theme="light"] .product-modal-close {
@@ -1505,28 +1509,28 @@
     }
 
     /* Хедер компактнее */
-    #header {
-        padding: 1em 0 0.5em 0 !important;
+    body #wrapper > header#header {
+        padding: 1em 0 0.5em 0;
     }
 
-    #header .logo .title {
-        font-size: 16px !important;
+    body #wrapper > header#header .logo .title {
+        font-size: 16px;
         letter-spacing: 0.1em;
     }
 
     /* Карточки товаров на всю ширину или 2 в ряд */
-    .tiles article {
-        width: calc(50% - 0.75em) !important;
-        margin: 0.75em 0 0 0.75em !important;
+    body #wrapper #main .tiles article {
+        width: calc(50% - 0.75em);
+        margin: 0.75em 0 0 0.75em;
     }
 
-    .tiles {
-        margin: -0.75em 0 0 -0.75em !important;
+    body #wrapper #main .tiles {
+        margin: -0.75em 0 0 -0.75em;
     }
 
     /* Название товара короче */
-    .tiles article h2 {
-        font-size: 14px !important;
+    body #wrapper #main .tiles article h2 {
+        font-size: 14px;
         letter-spacing: 0.1em;
         line-height: 1.2;
     }
@@ -1653,18 +1657,18 @@
 
 @media (max-width: 480px) {
     /* Ещё меньше отступы */
-    .tiles article {
-        width: calc(50% - 0.5em) !important;
-        margin: 0.5em 0 0 0.5em !important;
+    body #wrapper #main .tiles article {
+        width: calc(50% - 0.5em);
+        margin: 0.5em 0 0 0.5em;
     }
 
-    .tiles {
-        margin: -0.5em 0 0 -0.5em !important;
+    body #wrapper #main .tiles {
+        margin: -0.5em 0 0 -0.5em;
     }
 
     /* Название товара */
-    .tiles article h2 {
-        font-size: 12px !important;
+    body #wrapper #main .tiles article h2 {
+        font-size: 12px;
     }
 
     /* Минимальная высота карточки */
@@ -1693,7 +1697,7 @@
 
     /* Заголовок секции */
     .section-header h2 {
-        font-size: 18px !important;
+        font-size: 18px;
     }
 
     /* QR код */
@@ -1714,9 +1718,9 @@
 
 /* Очень маленькие экраны */
 @media (max-width: 360px) {
-    .tiles article {
-        width: 100% !important;
-        margin: 0.5em 0 0 0 !important;
+    body #wrapper #main .tiles article {
+        width: 100%;
+        margin: 0.5em 0 0 0;
     }
 }
 

@@ -1,0 +1,472 @@
+/*
+    theme.css - Темы и стили сайта
+    -------------------------------------------------------------------------------
+    Все CSS-переменные для тем, базовые стили, меню, подвал, поиск и карточки.
+    Уровни специфичности (от низкого к высокому):
+    1. :root, :root[data-theme] - переменные
+    2. body, html - базовые стили
+    3. #menu, #footer, #main - основные секции
+    4. .tiles, .search-wrapper - компоненты
+    5. html[data-fontsize] - размеры шрифта
+    6. [data-theme="light"] - светлая тема (переопределения)
+    -------------------------------------------------------------------------------
+*/
+
+/* ========================================
+   1. CSS ПЕРЕМЕННЫЕ И ТЕМЫ
+   ======================================== */
+
+/* Темные переменные (по умолчанию) */
+:root {
+    --bg-color: #1a1b1e;
+    --text-color: #a0a0a0;
+    --heading-color: #ffffff;
+    --card-bg: rgba(255,255,255,0.05);
+}
+
+/* Светлая тема */
+:root[data-theme="light"] {
+    --bg-color: #ffffff;
+    --text-color: #585858;
+    --heading-color: #2c3e50;
+    --card-bg: rgba(0,0,0,0.05);
+}
+
+/* ========================================
+   2. БАЗОВЫЕ СТИЛИ BODY И ЗАГОЛОВКОВ
+   ======================================== */
+
+/* Базовые стили с использованием переменных темы */
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    transition: background-color 0.5s, color 0.5s;
+}
+
+/* Заголовки используют heading-color из переменных */
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Inter', sans-serif;
+    color: var(--heading-color);
+    transition: color 0.5s;
+}
+
+/* Главный заголовок страницы - дополнительная специфичность */
+#main > .inner > header h1 {
+    font-family: 'Inter', sans-serif;
+    color: var(--heading-color) !important;
+    font-weight: 800;
+    letter-spacing: -1px;
+}
+
+/* ========================================
+   3. МЕНЮ (#menu)
+   ======================================== */
+
+/* Меню - базовые стили */
+#menu {
+    background-color: #111111;
+    color: #ffffff;
+}
+
+/* Элементы меню */
+#menu h2,
+#menu a,
+#menu .close {
+    color: #ffffff;
+    border-bottom-color: rgba(255,255,255,0.2);
+}
+
+/* Hover в меню */
+#menu a:hover {
+    color: #2ed573;
+}
+
+/* ========================================
+   4. РАЗМЕРЫ ШРИФТА (html[data-fontsize])
+   ======================================== */
+
+/* Мелкий шрифт */
+html[data-fontsize="small"] body,
+html[data-fontsize="small"] p,
+html[data-fontsize="small"] a,
+html[data-fontsize="small"] li {
+    font-size: 14px;
+}
+html[data-fontsize="small"] h1 { font-size: 24px; }
+html[data-fontsize="small"] h2 { font-size: 18px; }
+html[data-fontsize="small"] .fancybox__caption { font-size: 14px; }
+
+/* Нормальный шрифт (по умолчанию) */
+html[data-fontsize="normal"] body,
+html[data-fontsize="normal"] p,
+html[data-fontsize="normal"] a,
+html[data-fontsize="normal"] li {
+    font-size: 18px;
+}
+html[data-fontsize="normal"] h1 { font-size: 34px; }
+html[data-fontsize="normal"] h2 { font-size: 22px; }
+html[data-fontsize="normal"] .fancybox__caption { font-size: 18px; }
+
+/* Крупный шрифт */
+html[data-fontsize="large"] body,
+html[data-fontsize="large"] p,
+html[data-fontsize="large"] a,
+html[data-fontsize="large"] li {
+    font-size: 24px;
+}
+html[data-fontsize="large"] h1 { font-size: 46px; }
+html[data-fontsize="large"] h2 { font-size: 30px; }
+html[data-fontsize="large"] .fancybox__caption { font-size: 24px; }
+
+/* Плавные переходы размера шрифта */
+p, a, li, h1, h2, h3, .fancybox__caption {
+    transition: font-size 0.3s ease;
+}
+
+/* ========================================
+   5. ПОИСК (.search-wrapper, #searchInput)
+   ======================================== */
+
+/* Обёртка поиска - используем body > #wrapper > #main > .inner для специфичности */
+body #wrapper #main .inner .search-wrapper {
+    display: block;
+    visibility: visible;
+    margin-bottom: 30px;
+    position: relative;
+    width: 100%;
+}
+
+/* Поле ввода поиска - максимальная специфичность через каскад */
+body #wrapper #main .inner #searchInput {
+    display: block;
+    visibility: visible;
+    width: 100%;
+    padding: 14px 20px 14px 48px;
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.07);
+    color: #ffffff;
+    outline: none;
+    box-sizing: border-box;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+/* Светлая тема - переопределение стилей поиска */
+html[data-theme="light"] body #wrapper #main .inner #searchInput {
+    background: rgba(0,0,0,0.06);
+    border-color: rgba(0,0,0,0.15);
+    color: #2c3e50;
+}
+
+/* Placeholder */
+body #wrapper #main .inner #searchInput::placeholder {
+    color: #888;
+}
+
+/* Focus состояние */
+body #wrapper #main .inner #searchInput:focus {
+    border-color: #2ed573;
+    box-shadow: 0 0 0 3px rgba(46, 213, 115, 0.2);
+}
+
+/* Иконка поиска */
+body #wrapper #main .inner .search-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #888;
+    pointer-events: none;
+}
+
+/* Сообщение пустого результата */
+#searchEmptyMsg {
+    display: none;
+    text-align: center;
+    padding: 40px 0;
+    color: var(--text-color);
+    font-size: 16px;
+    opacity: 0.6;
+}
+
+/* ========================================
+   6. СЕТКА КАРТОЧЕК (.tiles)
+   ======================================== */
+
+/* Grid-сетка карточек - используем body > #wrapper > #main для специфичности */
+body #wrapper #main .tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+/* Карточка - максимальная специфичность */
+body #wrapper #main .tiles article {
+    position: relative;
+    width: 100%;
+    margin: 0;
+    border-radius: 8px;
+    border: none;
+    background-color: var(--card-bg);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    transition: transform 0.4s ease, box-shadow 0.4s ease;
+    overflow: hidden;
+    min-height: 250px;
+}
+
+/* Размеры карточек */
+.size-wide {
+    grid-column: span 2;
+}
+.size-large {
+    grid-column: span 2;
+    grid-row: span 2;
+    min-height: 400px;
+}
+
+/* Мобильная адаптация размеров карточек */
+@media screen and (max-width: 736px) {
+    body #wrapper #main .tiles .size-wide,
+    body #wrapper #main .tiles .size-large {
+        grid-column: span 1;
+        grid-row: span 1;
+    }
+}
+
+/* Hover-эффект карточки */
+body #wrapper #main .tiles article:hover,
+body #wrapper #main .tiles article:active {
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 12px 25px rgba(0, 0, 0, 0.25);
+    z-index: 10;
+}
+
+/* Заголовок карточки */
+body #wrapper #main .tiles article h2 {
+    color: #ffffff;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.9);
+    font-weight: 600;
+}
+
+/* Текст карточки */
+body #wrapper #main .tiles article .content p {
+    color: #ffffff;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+}
+
+/* Кнопка меню */
+a[href="#menu"] {
+    border-radius: 30px;
+}
+
+/* ========================================
+   7. ГАЛЕРЕЯ И FANCYBOX
+   ======================================== */
+
+body .fancybox__container {
+    z-index: 99999;
+}
+
+/* Скрытие навигации и счётчика fancybox */
+body .fancybox__nav,
+body .fancybox__counter,
+body .fancybox__toolbar__items--left,
+body .fancybox__toolbar__items--center {
+    display: none;
+}
+
+body .fancybox__toolbar__items--right button:not(.fancybox__button--close) {
+    display: none;
+}
+
+/* Кнопка закрытия fancybox */
+body .fancybox__button--close {
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    border-radius: 50%;
+    margin: 15px;
+    padding: 10px;
+    display: flex;
+}
+
+/* 3D просмотрщик */
+.model-container {
+    width: 100%;
+    height: 100%;
+    min-width: 300px;
+    min-height: 300px;
+    max-width: 800px;
+    max-height: 80vh;
+    display: none;
+    background: transparent;
+}
+
+model-viewer {
+    width: 100%;
+    height: 100%;
+    outline: none;
+    --poster-color: transparent;
+}
+
+/* ========================================
+   8. ПОДВАЛ (#footer)
+   ======================================== */
+
+/* Подвал - прозрачный фон */
+body #wrapper #footer {
+    background-color: transparent;
+    padding-top: 30px;
+}
+
+/* Заголовки в подвале */
+body #wrapper #footer h2 {
+    color: var(--heading-color);
+    margin-bottom: 15px;
+}
+
+/* Текст в подвале */
+body #wrapper #footer p,
+body #wrapper #footer strong,
+body #wrapper #footer a,
+body #wrapper #footer li {
+    color: var(--text-color);
+}
+
+/* Hover-эффект ссылок в подвале */
+body #wrapper #footer a:hover {
+    color: var(--accent-color, #4caf50);
+}
+
+/* Grid-раскладка подвала */
+body #wrapper #footer .inner {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 30px;
+    align-items: start;
+}
+
+/* Секции подвала */
+body #wrapper #footer section {
+    margin: 0;
+}
+
+/* Список контактов */
+.contacts-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.contacts-list li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+    border: none;
+}
+
+.contact-icon {
+    font-size: 18px;
+    flex: 0 0 auto;
+}
+
+.contacts-list a {
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.2s;
+}
+
+.contacts-list a:hover {
+    border-bottom-color: var(--accent-color, #4caf50);
+}
+
+/* Список социальных сетей */
+.socials-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.socials-list li {
+    padding: 0;
+    border: none;
+    margin: 0;
+}
+
+.social-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    text-decoration: none;
+    transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.15s;
+}
+
+/* Светлая тема - социальные ссылки */
+html[data-theme="light"] .social-link {
+    background: rgba(0,0,0,0.04);
+    border-color: rgba(0,0,0,0.12);
+}
+
+/* Hover социальных ссылок */
+.social-link:hover {
+    background: var(--accent-color, #4caf50);
+    border-color: var(--accent-color, #4caf50);
+    color: #fff;
+    transform: translateY(-2px);
+}
+
+.social-link:hover,
+.social-link:hover * {
+    color: #fff;
+}
+
+/* Иконки социальных сетей */
+.social-icon {
+    display: inline-flex;
+    line-height: 0;
+}
+
+.social-icon svg {
+    display: block;
+}
+
+/* ========================================
+   9. СВЕТЛАЯ ТЕМА - ДОПОЛНИТЕЛЬНЫЕ ПЕРЕОПРЕДЕЛЕНИЯ
+   ======================================== */
+
+html[data-theme="light"] body #wrapper #main .tiles article h2 {
+    color: #2c3e50;
+    text-shadow: none;
+}
+
+html[data-theme="light"] body #wrapper #main .tiles article .content p {
+    color: #585858;
+    text-shadow: none;
+}
+
+html[data-theme="light"] body #wrapper #menu {
+    background-color: #f5f5f5;
+    color: #2c3e50;
+}
+
+html[data-theme="light"] body #wrapper #menu h2,
+html[data-theme="light"] body #wrapper #menu a,
+html[data-theme="light"] body #wrapper #menu .close {
+    color: #2c3e50;
+    border-bottom-color: rgba(0,0,0,0.1);
+}
+
+html[data-theme="light"] body #wrapper #menu a:hover {
+    color: #2ed573;
+}
