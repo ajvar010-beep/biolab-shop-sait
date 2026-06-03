@@ -11,6 +11,7 @@ class SQLiteDB {
     this.db = null;
     this.dbPath = null;
     this.SQL = null;
+    this._inTransaction = false;
   }
 
   async init(dbPath) {
@@ -107,9 +108,28 @@ class SQLiteDB {
     this.save();
   }
 
-  // Сохранить базу на диск
+  // Начать транзакцию (защита от race condition)
+  beginTransaction() {
+    this._inTransaction = true;
+    this.db.run('BEGIN TRANSACTION');
+  }
+
+  // Зафиксировать транзакцию
+  commit() {
+    this.db.run('COMMIT');
+    this._inTransaction = false;
+    this.save();
+  }
+
+  // Откатить транзакцию
+  rollback() {
+    this.db.run('ROLLBACK');
+    this._inTransaction = false;
+  }
+
+  // Сохранить базу на диск (не вызывать внутри транзакции!)
   save() {
-    if (!this.db || !this.dbPath) return;
+    if (!this.db || !this.dbPath || this._inTransaction) return;
     const data = this.db.export();
     const buffer = Buffer.from(data);
     fs.writeFileSync(this.dbPath, buffer);
@@ -233,8 +253,11 @@ class SQLiteDB {
     const table = this.sanitizeTableName(collection);
 
     if (Object.keys(query).length === 0) {
-      const result = this.db.exec(`SELECT COUNT(*) as count FROM ${table}`);
-      return result.length > 0 ? result[0].values[0][0] : 0;
+      const stmt = this.db.prepare(`SELECT COUNT(*) as count FROM ${table}`);
+      let count = 0;
+      if (stmt.step()) { count = stmt.get()[0]; }
+      stmt.free();
+      return count;
     }
 
     const conditions = Object.keys(query).map(k => `${this.sanitizeFieldName(k)} = ?`).join(' AND ');

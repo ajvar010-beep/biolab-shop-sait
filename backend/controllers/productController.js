@@ -6,7 +6,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs/promises');
 
-const UPLOAD_DIR = path.resolve(process.cwd(), 'uploads');
+const UPLOAD_DIR = path.resolve(__dirname, '..', '..', 'uploads');
 
 const ALLOWED_EXT = /\.(jpe?g|png|gif|webp)$/i;
 const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -180,7 +180,20 @@ exports.getAllProducts = async (req, res) => {
       return p;
     });
 
-    res.json(products.slice(0, 500));
+    // Пагинация
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.min(parseInt(req.query.limit, 10) || 50, 200);
+    const total = products.length;
+    const totalPages = Math.ceil(total / limit);
+    const skip = (page - 1) * limit;
+
+    res.json({
+      products: products.slice(skip, skip + limit),
+      total,
+      page,
+      limit,
+      totalPages
+    });
   } catch (error) {
     console.error('Ошибка получения товаров:', error.message);
     res.status(500).json({ message: 'Ошибка сервера' });

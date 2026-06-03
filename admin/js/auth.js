@@ -3,9 +3,9 @@
 // Дизайн:
 // - JWT в localStorage. Это уязвимо к XSS, поэтому весь UI рендерится без innerHTML
 //   с пользовательскими данными (см. ui.js).
-// - Никакого самописного CSRF на клиенте: бэкенд проверяет Origin для не-GET запросов,
-//   и tokenVersion в БД позволяет инвалидировать токены при logout.
-// - На защищённых страницах ждём checkAuth() перед загрузкой данных.
+// - CSRF-защита: double-submit cookie + X-CSRF-Token header.
+//   Токен получаем при логине и храним в localStorage.
+// - tokenVersion в БД позволяет инвалидировать токены при logout.
 
 const API_URL = '/api';
 
@@ -25,6 +25,23 @@ function setAuth(token, username) {
 function clearAuth() {
     localStorage.removeItem('adminToken');
     localStorage.removeItem('adminUsername');
+    localStorage.removeItem('csrfToken');
+}
+
+// CSRF-токен
+function getCsrfToken() {
+    return localStorage.getItem('csrfToken');
+}
+
+// Получить CSRF-токен с сервера
+async function fetchCsrfToken() {
+    try {
+        const res = await fetch(`${API_URL}/auth/csrf-token`, { credentials: 'include' });
+        if (res.ok) {
+            const data = await res.json();
+            if (data.csrfToken) localStorage.setItem('csrfToken', data.csrfToken);
+        }
+    } catch (_) {}
 }
 
 async function logout({ silent = false } = {}) {
@@ -33,7 +50,11 @@ async function logout({ silent = false } = {}) {
         try {
             await fetch(`${API_URL}/auth/logout`, {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` }
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'X-CSRF-Token': getCsrfToken() || ''
+                },
+                credentials: 'include'
             });
         } catch (_) { /* ignore */ }
     }
@@ -71,10 +92,12 @@ async function requireAuth() {
         window.location.href = 'login.html';
         return false;
     }
+    // Также получаем свежий CSRF-токен
+    await fetchCsrfToken();
     return true;
 }
 
-// API запрос с токеном.
+// API запрос с токенами (JWT + CSRF).
 // На 401 чистим токен и редиректим на логин.
 async function apiRequest(endpoint, options = {}) {
     const token = getToken();
@@ -85,13 +108,17 @@ async function apiRequest(endpoint, options = {}) {
 
     const headers = Object.assign({}, options.headers || {});
     headers['Authorization'] = `Bearer ${token}`;
+    headers['X-CSRF-Token'] = getCsrfToken() || '';
     if (options.body && !(options.body instanceof FormData) && !headers['Content-Type']) {
         headers['Content-Type'] = 'application/json';
     }
 
     let response;
     try {
-        response = await fetch(`${API_URL}${endpoint}`, Object.assign({}, options, { headers }));
+        response = await fetch(`${API_URL}${endpoint}`, Object.assign({}, options, {
+            headers,
+            credentials: 'include'
+        }));
     } catch (e) {
         throw new Error('Ошибка сети. Проверьте подключение.');
     }
@@ -105,14 +132,12 @@ async function apiRequest(endpoint, options = {}) {
 }
 
 // ===== Auto-logout по неактивности =====
-// Не запускаем таймер на странице логина, а на остальных — с throttle, чтобы не убивать CPU.
 const INACTIVITY_TIMEOUT = 30 * 60 * 1000;
 let inactivityTimer = null;
 let lastResetAt = 0;
 
 function resetInactivityTimer() {
     const now = Date.now();
-    // throttle: сбрасываем не чаще раза в секунду
     if (now - lastResetAt < 1000) return;
     lastResetAt = now;
     if (inactivityTimer) clearTimeout(inactivityTimer);
@@ -123,7 +148,6 @@ function resetInactivityTimer() {
 }
 
 (function initInactivityTracking() {
-    // На странице логина не нужно
     if (/login\.html$/.test(window.location.pathname)) return;
     ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'].forEach((event) => {
         document.addEventListener(event, resetInactivityTimer, { passive: true });
@@ -139,6 +163,8 @@ window.adminAuth = {
     getUsername,
     setAuth,
     clearAuth,
+    getCsrfToken,
+    fetchCsrfToken,
     logout,
     checkAuth,
     requireAuth,

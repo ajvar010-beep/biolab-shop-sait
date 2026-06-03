@@ -198,8 +198,11 @@ async function loadProducts() {
   try {
     const response = await fetch(`${API_URL}/products`);
     if (!response.ok) throw new Error('Ошибка загрузки товаров');
-    const products = await response.json();
-    allProducts = Array.isArray(products) ? products : [];
+    const data = await response.json();
+    // Поддержка старого формата (массив) и нового ({ products, total, ... })
+    allProducts = Array.isArray(data)
+      ? data
+      : (Array.isArray(data.products) ? data.products : []);
     populateCategoryFilters(allProducts);
     renderProducts(allProducts);
   } catch (error) {
@@ -623,9 +626,24 @@ function renderProductModal(product) {
   const stock = parseInt(product.stock, 10) || 0;
   if (stockEl) {
     stockEl.className = `product-modal-stock ${stock > 0 ? 'in-stock' : 'out-of-stock'}`;
-    stockEl.innerHTML = stock > 0
-      ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20 6L9 17l-5-5 1.41-1.41L9 14.17 18.59 4.59 20 6z"/></svg> В наличии: ${stock} шт.`
-      : `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> Нет в наличии`;
+    stockEl.textContent = '';
+    if (stock > 0) {
+      const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      icon.setAttribute('width', '16'); icon.setAttribute('height', '16');
+      icon.setAttribute('viewBox', '0 0 24 24'); icon.setAttribute('fill', 'currentColor');
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', 'M20 6L9 17l-5-5 1.41-1.41L9 14.17 18.59 4.59 20 6z');
+      icon.appendChild(path); stockEl.appendChild(icon);
+      stockEl.appendChild(document.createTextNode(` В наличии: ${stock} шт.`));
+    } else {
+      const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      icon.setAttribute('width', '16'); icon.setAttribute('height', '16');
+      icon.setAttribute('viewBox', '0 0 24 24'); icon.setAttribute('fill', 'currentColor');
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', 'M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z');
+      icon.appendChild(path); stockEl.appendChild(icon);
+      stockEl.appendChild(document.createTextNode(' Нет в наличии'));
+    }
   }
 
   if (priceEl) priceEl.textContent = `${parseInt(product.price, 10) || 0} ₽`;

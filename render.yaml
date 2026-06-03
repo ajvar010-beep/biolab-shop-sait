@@ -17,8 +17,10 @@ services:
       - key: PORT
         value: 10000
       - key: ALLOWED_ORIGINS
-        value: "*"
+        # ⚠️ Заменить на домен продакшена перед деплоем
+        # Пример: https://biolab.ru,https://www.biolab.ru
+        value: ""
       - key: ADMIN_USERNAME
-        value: admin
+        generateValue: true
       - key: ADMIN_PASSWORD
-        value: AdminDemo2026
+        generateValue: true

@@ -8,8 +8,9 @@ const fs = require('fs');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const cookieParser = require('cookie-parser');
 const db = require('./config/database');
-const { authLimiter, adminLimiter, checkOrigin } = require('./middleware/security');
+const { csrfCheck, authLimiter, adminLimiter } = require('./middleware/security');
 const authController = require('./controllers/authController');
 
 // ===== Проверка критичных переменных =====
@@ -31,7 +32,9 @@ const app = express();
 const DATA_DIR = path.resolve(__dirname, '..', 'data');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
-const DB_PATH = path.join(DATA_DIR, 'biolab.db');
+const DB_PATH = process.env.SQLITE_DB_PATH
+  ? path.resolve(process.env.SQLITE_DB_PATH)
+  : path.join(DATA_DIR, 'biolab.db');
 db.init(DB_PATH).then(() => {
   console.log('✅ SQLite база данных инициализирована');
 
@@ -99,10 +102,16 @@ app.use(cors(corsOptions));
 // ===== Парсеры =====
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
+// ===== HTTP → HTTPS редирект (для VPS, не для Render где SSL терминируется) =====
+app.use((req, res, next) => {
+  if (req.secure || req.get('X-Forwarded-Proto') === 'https') return next();
+  if (process.env.NODE_ENV === 'production' && req.protocol === 'http') {
+    return res.redirect(301, `https://${req.hostname}${req.url}`);
+  }
+  next();
+});
 
-// ===== Дополнительная Origin-проверка для не-GET запросов =====
-const allOrigins = allowedOrigins.concat(['http://localhost:3000', 'http://127.0.0.1:3000']);
-app.use('/api', checkOrigin(allOrigins));
+app.use(cookieParser());
 
 // ===== Rate limiting =====
 app.use('/api/auth/login', authLimiter);
@@ -148,7 +157,7 @@ if (fs.existsSync(PUBLIC_DIR)) {
   app.use('/images', express.static(path.join(ROOT, 'images')));
   app.use('/admin', express.static(path.join(ROOT, 'admin')));
 
-  const safeFiles = ['index.html', 'elements.html', 'generic.html', 'favicon.ico', 'robots.txt'];
+  const safeFiles = ['index.html', 'favicon.ico', 'robots.txt'];
   app.get(['/', ...safeFiles.map((f) => `/${f}`)], (req, res, next) => {
     const file = req.path === '/' ? 'index.html' : req.path.slice(1);
     if (!safeFiles.includes(file)) return next();

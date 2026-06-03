@@ -44,7 +44,8 @@
     async function loadProducts() {
         try {
             const res = await apiRequest('/products');
-            products = await res.json();
+            const data = await res.json();
+            products = Array.isArray(data) ? data : (data.products || []);
             displayProducts(products);
         } catch (e) {
             clear(productsContainer);

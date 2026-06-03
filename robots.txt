@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+
+# Блокируем админку от поисковиков
+Disallow: /admin/
+Disallow: /api/

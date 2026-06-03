@@ -1,4 +1,63 @@
 const rateLimit = require('express-rate-limit');
+const crypto = require('crypto');
+
+/**
+ * CSRF-токены: double-submit cookie + Authorization header.
+ * Работает так:
+ * 1. GET /api/auth/csrf-token — выдаёт токен (публичный, для логина)
+ * 2. При логине — токен сохраняется в localStorage
+ * 3. Все мутации шлют X-CSRF-Token header
+ * 4. Сервер сверяет header с cookie
+ */
+const CSRF_COOKIE = 'csrf_token';
+const CSRF_HEADER = 'x-csrf-token';
+
+function generateToken() {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+function setCsrfCookie(res, token) {
+  res.cookie(CSRF_COOKIE, token, {
+    httpOnly: false,
+    sameSite: 'strict',
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 24 * 60 * 60 * 1000
+  });
+}
+
+function setCsrfHeaders(res, token) {
+  setCsrfCookie(res, token);
+  res.setHeader(CSRF_HEADER, token);
+}
+
+// Публичный endpoint — выдаёт токен (для логина и GET-страниц)
+function csrfTokenIssue(req, res) {
+  const token = generateToken();
+  setCsrfHeaders(res, token);
+  res.json({ csrfToken: token });
+}
+
+// Проверка CSRF для защищённых мутаций
+function csrfCheck(req, res, next) {
+  // Пропускаем всё кроме мутаций
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+
+  const cookieToken = req.cookies ? req.cookies[CSRF_COOKIE] : undefined;
+  const headerToken = req.get(CSRF_HEADER);
+
+  if (!cookieToken || !headerToken) {
+    return res.status(403).json({ message: 'CSRF token missing' });
+  }
+
+  if (cookieToken !== headerToken) {
+    return res.status(403).json({ message: 'CSRF token mismatch' });
+  }
+
+  // Ротируем токен
+  const newToken = generateToken();
+  setCsrfHeaders(res, newToken);
+  next();
+}
 
 /**
  * Создаёт rate limiter c единым форматом ответа.
@@ -42,26 +101,6 @@ const orderLookupLimiter = createRateLimiter(
 );
 
 /**
- * Защита от типовых NoSQL-инъекций: ключи с $ или . в req.body / req.query / req.params.
- * Простая, надёжная и без зависимостей. Ключи с операторами не пройдут.
- */
-function sanitizeMongoInput(req, res, next) {
-  const reject = () => res.status(400).json({ message: 'Недопустимые данные запроса' });
-  const isBad = (obj) => {
-    if (!obj || typeof obj !== 'object') return false;
-    for (const key of Object.keys(obj)) {
-      if (key.startsWith('$') || key.includes('.')) return true;
-      const v = obj[key];
-      if (v && typeof v === 'object' && isBad(v)) return true;
-    }
-    return false;
-  };
-
-  if (isBad(req.body) || isBad(req.query) || isBad(req.params)) return reject();
-  next();
-}
-
-/**
  * Минимальная Origin-проверка для не-GET запросов: дополнительная защита от CSRF
  * поверх того, что мы храним JWT в localStorage и шлём его явно (не cookie).
  * Если Origin отсутствует (curl, Postman) и нет cookies — пропускаем (это не браузер).
@@ -71,8 +110,10 @@ function checkOrigin(allowedOrigins) {
     if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') return next();
 
     const origin = req.get('Origin') || req.get('Referer');
-    // Если запрос без Origin/Referer и без cookies — это явно не браузер с украденной сессией
-    if (!origin && !req.headers.cookie) return next();
+    // Если нет Origin и нет сессионного cookie (adminToken) — это curl/Postman, пропускаем.
+    // CSRF-cookie (csrf_token) шлёт и curl, поэтому проверяем именно сессию.
+    const hasSession = req.cookies && !!req.cookies['adminToken'];
+    if (!origin && !hasSession) return next();
 
     if (!origin) return res.status(403).json({ message: 'Origin не указан' });
 
@@ -83,10 +124,11 @@ function checkOrigin(allowedOrigins) {
 }
 
 module.exports = {
+  csrfTokenIssue,
+  csrfCheck,
   authLimiter,
   orderLimiter,
   adminLimiter,
   orderLookupLimiter,
-  sanitizeMongoInput,
   checkOrigin
 };

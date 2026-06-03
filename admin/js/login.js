@@ -2,7 +2,7 @@
 (function () {
     'use strict';
 
-    const { setAuth, API_URL, getToken } = window.adminAuth;
+    const { setAuth, getToken, API_URL, fetchCsrfToken, getToken: _getToken } = window.adminAuth;
 
     // Если уже авторизован — сразу на главную
     if (getToken()) {
@@ -25,9 +25,17 @@
         loginBtn.textContent = 'Вход...';
 
         try {
+            // Сначала получаем CSRF-токен
+            await fetchCsrfToken();
+            const csrfToken = localStorage.getItem('csrfToken') || '';
+
             const response = await fetch(`${API_URL}/auth/login`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken
+                },
+                credentials: 'include',
                 body: JSON.stringify({ username, password })
             });
 
@@ -36,6 +44,8 @@
 
             if (response.ok && data && data.token) {
                 setAuth(data.token, data.admin && data.admin.username || username);
+                // После логина обновляем CSRF-токен
+                await fetchCsrfToken();
                 window.location.href = 'index.html';
             } else {
                 errorMessage.textContent = (data && data.message) || 'Ошибка входа';

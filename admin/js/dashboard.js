@@ -26,8 +26,9 @@
                 apiRequest('/products'),
                 apiRequest('/orders?limit=500')
             ]);
-            const products = await productsRes.json();
+            const productsData = await productsRes.json();
             const ordersData = await ordersRes.json();
+            const products = Array.isArray(productsData) ? productsData : (productsData.products || []);
             const orders = Array.isArray(ordersData) ? ordersData : (ordersData.orders || []);
 
             document.getElementById('totalProducts').textContent = String(products.length);

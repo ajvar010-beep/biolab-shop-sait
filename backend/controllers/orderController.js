@@ -67,93 +67,91 @@ exports.createOrder = async (req, res) => {
       requested.push({ productId: it.productId, quantity: qty });
     }
 
-    const orderItems = [];
-    let totalAmount = 0;
-    const reservedItems = [];
+    // Начинаем транзакцию — все операции атомарны
+    db.beginTransaction();
 
-    // Обрабатываем каждый товар
-    for (const { productId, quantity } of requested) {
-      const product = db.findOne('products', { _id: productId });
+    try {
+      const orderItems = [];
+      let totalAmount = 0;
 
-      if (!product) {
-        // Откатываем зарезервированные
-        for (const r of reservedItems) {
-          const p = db.findOne('products', { _id: r.productId });
-          if (p) {
-            db.updateOne('products', { _id: r.productId }, { stock: p.stock + r.quantity });
-          }
+      // Обрабатываем каждый товар внутри транзакции
+      for (const { productId, quantity } of requested) {
+        const product = db.findOne('products', { _id: productId });
+
+        if (!product) {
+          db.rollback();
+          return res.status(400).json({ message: `Товар не найден: ${productId}` });
         }
-        return res.status(400).json({ message: `Товар не найден: ${productId}` });
-      }
 
-      if (product.stock < quantity) {
-        // Откатываем зарезервированные
-        for (const r of reservedItems) {
-          const p = db.findOne('products', { _id: r.productId });
-          if (p) {
-            db.updateOne('products', { _id: r.productId }, { stock: p.stock + r.quantity });
-          }
+        if (product.stock < quantity) {
+          db.rollback();
+          return res.status(400).json({
+            message: `Недостаточно товара "${product.title}" (в наличии: ${product.stock})`
+          });
         }
-        return res.status(400).json({
-          message: `Недостаточно товара "${product.title}" (в наличии: ${product.stock})`
+
+        // Уменьшаем остаток внутри транзакции
+        db.updateOne('products', { _id: productId }, { stock: product.stock - quantity });
+
+        orderItems.push({
+          productId: product._id,
+          title: product.title,
+          price: product.price,
+          quantity
         });
+        totalAmount += product.price * quantity;
       }
 
-      // Резервируем товар
-      db.updateOne('products', { _id: productId }, { stock: product.stock - quantity });
-      reservedItems.push({ productId, quantity });
-
-      orderItems.push({
-        productId: product._id,
-        title: product.title,
-        price: product.price,
-        quantity
-      });
-      totalAmount += product.price * quantity;
-    }
-
-    // Генерируем уникальный код заказа
-    let orderCode = null;
-    for (let i = 0; i < 5; i++) {
-      const candidate = generateOrderCode();
-      const exists = db.findOne('orders', { orderCode: candidate });
-      if (!exists) {
-        orderCode = candidate;
-        break;
+      // Генерируем уникальный код заказа
+      let orderCode = null;
+      for (let i = 0; i < 5; i++) {
+        const candidate = generateOrderCode();
+        const exists = db.findOne('orders', { orderCode: candidate });
+        if (!exists) {
+          orderCode = candidate;
+          break;
+        }
       }
-    }
-    if (!orderCode) {
-      return res.status(500).json({ message: 'Не удалось сгенерировать код заказа' });
-    }
+      if (!orderCode) {
+        db.rollback();
+        return res.status(500).json({ message: 'Не удалось сгенерировать код заказа' });
+      }
 
-    const orderId = 'order_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    const now = new Date().toISOString();
+      const orderId = 'order_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      const now = new Date().toISOString();
 
-    const orderData = {
-      _id: orderId,
-      orderCode,
-      customerName,
-      customerPhone,
-      customerEmail,
-      items: JSON.stringify(orderItems),
-      totalAmount,
-      totalPrice: totalAmount,
-      status: 'pending',
-      createdAt: now,
-      updatedAt: now
-    };
-
-    db.insert('orders', orderData);
-
-    res.status(201).json({
-      message: 'Заказ успешно создан',
-      order: {
+      const orderData = {
+        _id: orderId,
         orderCode,
+        customerName,
+        customerPhone,
+        customerEmail,
+        items: JSON.stringify(orderItems),
         totalAmount,
         totalPrice: totalAmount,
-        items: orderItems
-      }
-    });
+        status: 'pending',
+        createdAt: now,
+        updatedAt: now
+      };
+
+      db.insert('orders', orderData);
+
+      // Фиксируем транзакцию
+      db.commit();
+
+      res.status(201).json({
+        message: 'Заказ успешно создан',
+        order: {
+          orderCode,
+          totalAmount,
+          totalPrice: totalAmount,
+          items: orderItems
+        }
+      });
+    } catch (error) {
+      db.rollback();
+      throw error;
+    }
   } catch (error) {
     console.error('Ошибка создания заказа:', error.message);
     res.status(500).json({ message: 'Ошибка сервера' });

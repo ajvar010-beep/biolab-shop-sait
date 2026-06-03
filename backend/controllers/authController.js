@@ -88,7 +88,7 @@ exports.login = async (req, res) => {
         username: admin.username,
         tv: admin.tokenVersion || 0
       },
-      process.env.JWT_SECRET || 'biolab-secret-key-change-in-production',
+      process.env.JWT_SECRET,
       { expiresIn: JWT_EXPIRES_IN }
     );
 
