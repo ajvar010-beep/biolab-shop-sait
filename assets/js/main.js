@@ -1,185 +1,90 @@
-/*
-	Phantom by HTML5 UP
-	html5up.net | @ajlkn
-	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
-*/
+/**
+ * Biolab main.js — vanilla JS
+ * Phantom by HTML5 UP | html5up.net | CCA 3.0
+ */
 
-(function($) {
+// Play initial animations on page load.
+window.addEventListener('load', () => {
+  setTimeout(() => document.body.classList.remove('is-preload'), 100);
+});
 
-	var	$window = $(window),
-		$body = $('body');
+// Touch detection
+if ('ontouchstart' in window) document.body.classList.add('is-touch');
 
-	// Breakpoints.
-		breakpoints({
-			xlarge:   [ '1281px',  '1680px' ],
-			large:    [ '981px',   '1280px' ],
-			medium:   [ '737px',   '980px'  ],
-			small:    [ '481px',   '736px'  ],
-			xsmall:   [ '361px',   '480px'  ],
-			xxsmall:  [ null,      '360px'  ]
-		});
+// Menu
+const menu = document.getElementById('menu');
+if (menu) {
+  let menuLocked = false;
 
-	// Play initial animations on page load.
-		$window.on('load', function() {
-			window.setTimeout(function() {
-				$body.removeClass('is-preload');
-			}, 100);
-		});
+  // Wrap inner content
+  const inner = document.createElement('div');
+  inner.className = 'inner';
+  while (menu.firstChild) inner.appendChild(menu.firstChild);
+  menu.appendChild(inner);
 
-	// Touch?
-		if (browser.mobile)
-			$body.addClass('is-touch');
+  function lockMenu() {
+    if (menuLocked) return false;
+    menuLocked = true;
+    setTimeout(() => { menuLocked = false; }, 350);
+    return true;
+  }
 
-	// Forms.
-		var $form = $('form');
+  function showMenu() {
+    if (lockMenu()) document.body.classList.add('is-menu-visible');
+  }
 
-		// Auto-resizing textareas.
-			$form.find('textarea').each(function() {
+  function hideMenu() {
+    if (lockMenu()) document.body.classList.remove('is-menu-visible');
+  }
 
-				var $this = $(this),
-					$wrapper = $('<div class="textarea-wrapper"></div>'),
-					$submits = $this.find('input[type="submit"]');
+  function toggleMenu() {
+    if (lockMenu()) document.body.classList.toggle('is-menu-visible');
+  }
 
-				$this
-					.wrap($wrapper)
-					.attr('rows', 1)
-					.css('overflow', 'hidden')
-					.css('resize', 'none')
-					.on('keydown', function(event) {
+  // Close button
+  const closeBtn = document.createElement('a');
+  closeBtn.className = 'close';
+  closeBtn.href = '#menu';
+  closeBtn.textContent = 'Close';
+  menu.appendChild(closeBtn);
 
-						if (event.keyCode == 13
-						&&	event.ctrlKey) {
+  closeBtn.addEventListener('click', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    hideMenu();
+  });
 
-							event.preventDefault();
-							event.stopPropagation();
+  // Click on menu links
+  menu.addEventListener('click', e => {
+    e.stopPropagation();
+    const link = e.target.closest('a');
+    if (!link) return;
+    e.preventDefault();
+    hideMenu();
+    const href = link.getAttribute('href');
+    if (href && href !== '#menu') {
+      setTimeout(() => { window.location.href = href; }, 350);
+    }
+  });
 
-							$(this).blur();
+  // Body click — hide menu
+  document.addEventListener('click', e => {
+    if (e.target.closest('#menu')) return;
+    hideMenu();
+  });
 
-						}
+  // Toggle links
+  document.addEventListener('click', e => {
+    const link = e.target.closest('a[href="#menu"]');
+    if (link) {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleMenu();
+    }
+  });
 
-					})
-					.on('blur focus', function() {
-						$this.val($.trim($this.val()));
-					})
-					.on('input blur focus --init', function() {
-
-						$wrapper
-							.css('height', $this.height());
-
-						$this
-							.css('height', 'auto')
-							.css('height', $this.prop('scrollHeight') + 'px');
-
-					})
-					.on('keyup', function(event) {
-
-						if (event.keyCode == 9)
-							$this
-								.select();
-
-					})
-					.triggerHandler('--init');
-
-				// Fix.
-					if (browser.name == 'ie'
-					||	browser.mobile)
-						$this
-							.css('max-height', '10em')
-							.css('overflow-y', 'auto');
-
-			});
-
-	// Menu.
-		var $menu = $('#menu');
-
-		$menu.wrapInner('<div class="inner"></div>');
-
-		$menu._locked = false;
-
-		$menu._lock = function() {
-
-			if ($menu._locked)
-				return false;
-
-			$menu._locked = true;
-
-			window.setTimeout(function() {
-				$menu._locked = false;
-			}, 350);
-
-			return true;
-
-		};
-
-		$menu._show = function() {
-
-			if ($menu._lock())
-				$body.addClass('is-menu-visible');
-
-		};
-
-		$menu._hide = function() {
-
-			if ($menu._lock())
-				$body.removeClass('is-menu-visible');
-
-		};
-
-		$menu._toggle = function() {
-
-			if ($menu._lock())
-				$body.toggleClass('is-menu-visible');
-
-		};
-
-		$menu
-			.appendTo($body)
-			.on('click', function(event) {
-				event.stopPropagation();
-			})
-			.on('click', 'a', function(event) {
-
-				var href = $(this).attr('href');
-
-				event.preventDefault();
-				event.stopPropagation();
-
-				// Hide.
-					$menu._hide();
-
-				// Redirect.
-					if (href == '#menu')
-						return;
-
-					window.setTimeout(function() {
-						window.location.href = href;
-					}, 350);
-
-			})
-			.append('<a class="close" href="#menu">Close</a>');
-
-		$body
-			.on('click', 'a[href="#menu"]', function(event) {
-
-				event.stopPropagation();
-				event.preventDefault();
-
-				// Toggle.
-					$menu._toggle();
-
-			})
-			.on('click', function(event) {
-
-				// Hide.
-					$menu._hide();
-
-			})
-			.on('keydown', function(event) {
-
-				// Hide on escape.
-					if (event.keyCode == 27)
-						$menu._hide();
-
-			});
-
-})(jQuery);
+  // Escape key
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') hideMenu();
+  });
+}

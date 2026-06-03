@@ -425,16 +425,10 @@ function renderProducts(products) {
   });
 
   // Снимаем шаблонные обработчики Fancybox с карточек
-  if (typeof jQuery !== 'undefined') {
-    jQuery('.tiles article').off('click');
-    jQuery('.tiles article a').off('click');
-    jQuery(document).off('click.tiles', '.tiles article');
-  }
+
 
   // Отключаем Fancybox для карточек (открываем свою модалку)
-  if (typeof Fancybox !== 'undefined') {
-    Fancybox.destroy();
-  }
+  if (typeof Fancybox !== 'undefined') Fancybox.destroy();
 }
 
 // ===== Модалки и оформление заказа =====
