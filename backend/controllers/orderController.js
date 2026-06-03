@@ -3,6 +3,7 @@
  */
 const crypto = require('crypto');
 const db = require('../config/database');
+const notifications = require('../services/notifications');
 
 function generateOrderCode() {
   const min = 100000000000;
@@ -138,6 +139,10 @@ exports.createOrder = async (req, res) => {
 
       // Фиксируем транзакцию
       db.commit();
+
+      // Отправляем уведомление в Telegram (асинхронно, не блокируем ответ)
+      const fullOrder = { ...orderData, items: orderItems };
+      notifications.notifyNewOrder(fullOrder).catch(() => {});
 
       res.status(201).json({
         message: 'Заказ успешно создан',
@@ -300,6 +305,7 @@ exports.completeOrder = async (req, res) => {
       try { updated.items = JSON.parse(updated.items); } catch (_) { updated.items = []; }
     }
 
+      notifications.notifyOrderCompleted(updated).catch(() => {});
     res.json({ message: 'Заказ выдан', order: updated });
   } catch (error) {
     console.error('Ошибка выдачи заказа:', error.message);
@@ -351,6 +357,7 @@ exports.cancelOrder = async (req, res) => {
       try { updated.items = JSON.parse(updated.items); } catch (_) { updated.items = []; }
     }
 
+      notifications.notifyOrderCancelled(updated).catch(() => {});
     res.json({ message: 'Заказ отменён, товары возвращены', order: updated });
   } catch (error) {
     console.error('Ошибка отмены заказа:', error.message);
