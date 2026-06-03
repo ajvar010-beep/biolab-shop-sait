@@ -36,22 +36,22 @@ if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 const DB_PATH = process.env.SQLITE_DB_PATH
   ? path.resolve(process.env.SQLITE_DB_PATH)
   : path.join(DATA_DIR, 'biolab.db');
-db.init(DB_PATH).then(() => {
-  console.log('✅ SQLite база данных инициализирована');
 
-  // Создаём админа по умолчанию если его нет
-  authController.createDefaultAdmin('admin', 'AdminDemo2026')
-    .then(created => {
-      if (created) {
-        console.log('✅ Админ создан: admin / AdminDemo2026');
-      } else {
-        console.log('ℹ️ Админ уже существует');
-      }
-    });
-}).catch(err => {
-  logError('Server', err);
-  process.exit(1);
-});
+db.init(DB_PATH);
+console.log('✅ SQLite база данных инициализирована');
+
+// Создаём админа по умолчанию если его нет
+authController.createDefaultAdmin('admin', 'AdminDemo2026')
+  .then(created => {
+    if (created) {
+      console.log('✅ Админ создан: admin / AdminDemo2026');
+    } else {
+      console.log('ℹ️ Админ уже существует');
+    }
+  })
+  .catch(err => {
+    console.error('⚠️ Ошибка создания админа:', err.message);
+  });
 
 // ===== Безопасность заголовков =====
 app.use(helmet({
@@ -177,7 +177,7 @@ app.use('/api/settings', require('./routes/settings'));
 
 // Health-check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', version: '1.2.0', database: 'sqlite' });
+  res.json({ status: 'ok', version: '1.3.0', database: 'sqlite' });
 });
 
 // 404 для API

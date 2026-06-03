@@ -1,5 +1,8 @@
 FROM node:20-alpine
 
+# Для better-sqlite3 нужны build tools
+RUN apk add --no-cache python3 make g++
+
 WORKDIR /app
 
 COPY package*.json ./
