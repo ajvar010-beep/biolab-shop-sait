@@ -5,23 +5,14 @@ const db = require('../config/database');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs/promises');
-
-const UPLOAD_DIR = path.resolve(__dirname, '..', '..', 'uploads');
+const storage = require('../services/storage');
 
 const ALLOWED_EXT = /\.(jpe?g|png|gif|webp)$/i;
 const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, UPLOAD_DIR),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, `${uniqueSuffix}${ext}`);
-  }
-});
-
+// Multer хранит файл в памяти (потом передаём в storage)
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024, files: 1 },
   fileFilter: (req, file, cb) => {
     if (!file.originalname || file.originalname.length > 255) {
@@ -46,17 +37,21 @@ function uploadAsync(req, res) {
   });
 }
 
+// Удалить временно загруженный файл из памяти (больше не нужно — используем memoryStorage)
 async function deleteUploadedFile(file) {
-  if (!file || !file.path) return;
-  try { await fs.unlink(file.path); } catch (_) { /* ignore */ }
+  // memoryStorage не создаёт файл, ничего не делаем
 }
 
+// Удалить старый файл через storage сервис
 async function deleteOldImage(imageUrl) {
-  if (typeof imageUrl !== 'string' || !imageUrl.startsWith('/uploads/')) return;
-  const fname = path.basename(imageUrl);
-  const fullPath = path.join(UPLOAD_DIR, fname);
-  if (path.dirname(fullPath) !== UPLOAD_DIR) return;
-  try { await fs.unlink(fullPath); } catch (_) { /* ignore */ }
+  if (typeof imageUrl !== 'string' || !imageUrl) return;
+  // Пропускаем внешние URL (уже в S3 или CDN)
+  if (imageUrl.startsWith('http')) return;
+  try {
+    await storage.deleteFile(imageUrl);
+  } catch (_) {
+    // ignore
+  }
 }
 
 function validateUrl(url, fieldName) {
@@ -238,8 +233,12 @@ exports.createProduct = async (req, res) => {
       return res.status(400).json({ message: 'Категория не найдена' });
     }
 
-    if (req.file) data.imageUrl = `/uploads/${req.file.filename}`;
-    else data.imageUrl = '';
+    if (req.file) {
+      const result = await storage.uploadFile(req.file.buffer, req.file.originalname, req.file.mimetype);
+      data.imageUrl = result.url;
+    } else {
+      data.imageUrl = '';
+    }
 
     data._id = 'prod_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     data.createdAt = new Date().toISOString();
@@ -289,7 +288,10 @@ exports.updateProduct = async (req, res) => {
     }
 
     const oldImageUrl = product.imageUrl;
-    if (req.file) data.imageUrl = `/uploads/${req.file.filename}`;
+    if (req.file) {
+      const result = await storage.uploadFile(req.file.buffer, req.file.originalname, req.file.mimetype);
+      data.imageUrl = result.url;
+    }
 
     data.updatedAt = new Date().toISOString();
 
