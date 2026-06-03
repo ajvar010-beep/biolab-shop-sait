@@ -10,6 +10,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const db = require('./config/database');
+const { logError } = require('./utils/logger');
 const { csrfCheck, authLimiter, adminLimiter } = require('./middleware/security');
 const authController = require('./controllers/authController');
 
@@ -48,7 +49,7 @@ db.init(DB_PATH).then(() => {
       }
     });
 }).catch(err => {
-  console.error('❌ Не удалось инициализировать базу:', err.message);
+  logError('Server', err);
   process.exit(1);
 });
 
@@ -201,7 +202,7 @@ app.use((req, res) => {
 
 // Глобальный обработчик ошибок
 app.use((error, req, res, next) => {
-  console.error('Глобальная ошибка:', error.message);
+  logError('Server', error);
   if (error.message === 'Не разрешено CORS политикой') {
     return res.status(403).json({ message: 'CORS ошибка' });
   }

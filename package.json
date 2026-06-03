@@ -11,7 +11,8 @@
     "start": "node backend/server.js",
     "dev": "nodemon backend/server.js",
     "audit": "npm audit",
-    "backup": "node scripts/backup.js"
+    "backup": "node scripts/backup.js",
+    "logs": "tail -f logs/error.log"
   },
   "keywords": [
     "biolab",
