@@ -35,7 +35,7 @@ npm start
 
 ## 🛠 Технологии
 
-**Backend:** Node.js, Express, SQLite (sql.js), JWT  
+**Backend:** Node.js, Express, SQLite (better-sqlite3), JWT  
 **Frontend:** Vanilla JS, Fancybox, Model Viewer  
 **Безопасность:** Helmet, Rate Limiting, CORS, XSS Protection
 
@@ -160,13 +160,83 @@ GET  /api/settings         # Получить настройки
 PUT  /api/settings         # Сохранить настройки
 ```
 
+## 📱 PWA — Progressive Web App
+
+Biolab поддерживает установку на устройство как приложение:
+- Офлайн-режим (просмотр ранее загруженных страниц)
+- Иконки для домашнего экрана (192x192 и 512x512)
+- Web App Manifest
+
+**Файлы:**
+- `public/manifest.json` — манифест PWA
+- `public/sw.js` — service worker
+- `public/offline.html` — страница офлайн
+- `public/icon-192.svg`, `public/icon-512.svg` — иконки
+
+## 🤖 Telegram-уведомления
+
+При создании нового заказа админ получает уведомление в Telegram:
+- Новый заказ с деталями (имя клиента, состав, сумма)
+- Быстрое уведомление без захода в админку
+
+**Настройка:**
+1. Создайте бота через [@BotFather](https://t.me/BotFather)
+2. Получите `BOT_TOKEN`
+3. Узнайте ваш `CHAT_ID` через [@userinfobot](https://t.me/userinfobot)
+4. Добавьте в `.env`:
+```
+TELEGRAM_BOT_TOKEN=your_bot_token
+TELEGRAM_ADMIN_CHAT_ID=your_chat_id
+```
+
+## 💾 S3-хранилище файлов
+
+По умолчанию файлы хранятся локально (`uploads/`). Для продакшена можно использовать S3:
+- `STORAGE_TYPE=local` — локальное хранение (по умолчанию)
+- `STORAGE_TYPE=s3` — S3-совместимое хранилище
+
+**S3-провайдеры:** AWS S3, Selectel, Cloudflare R2, MinIO
+
+## 🧪 Запуск тестов
+
+```bash
+# Все тесты
+npm test
+
+# Watch mode (автоперезапуск при изменениях)
+npm run test:watch
+```
+
+**24 теста** покрывают:
+- API эндпоинты (products, orders, auth)
+- Валидацию данных
+- Обработку ошибок
+
+Тесты: `backend/tests/*.test.js`
+
+## 🐳 Docker
+
+```bash
+# Сборка
+docker build -t biolab .
+
+# Запуск
+docker run -p 3000:3000 --env-file .env biolab
+```
+
+**Dockerfile** уже есть в проекте.
+
+| npm run sitemap  | Генерация sitemap.xml                    |
+| npm run test     | Запуск Jest-тестов (24 теста)            |
+| npm run test:watch | Тесты в watch-режиме                   |
+
 ## 📁 Структура проекта
 
 ```
 biolab/
 ├── backend/
 │   ├── config/
-│   │   └── database.js    # SQLite Database Layer
+│   │   └── database.js    # SQLite Database Layer (better-sqlite3)
 │   ├── controllers/       # Логика API
 │   │   ├── authController.js
 │   │   ├── productController.js
@@ -174,12 +244,28 @@ biolab/
 │   │   ├── categoryController.js
 │   │   └── settingsController.js
 │   ├── middleware/        # Auth, security
+│   ├── migrations/       # Миграции БД
+│   │   ├── migrator.js   # Мигратор
+│   │   ├── 001_initial_schema.js
+│   │   └── 002_seed_categories.js
 │   ├── routes/           # API routes
-│   ├── utils/            # QR generator, email sender
+│   ├── services/         # Хранилище, уведомления
+│   │   ├── storage.js    # S3/Local storage
+│   │   └── notifications.js # Telegram
+│   ├── tests/            # Jest-тесты
+│   ├── utils/            # QR generator, email, logger
+│   │   └── logger.js     # Winston logger
 │   └── server.js         # Главный файл
 ├── data/                  # SQLite база данных (создаётся автоматически)
-├── public/                # Статические файлы (HTML, CSS, JS)
-├── uploads/               # Загруженные изображения
+├── public/                # Статические файлы, PWA
+│   ├── manifest.json     # PWA манифест
+│   ├── sw.js             # Service Worker
+│   └── offline.html      # Офлайн-страница
+├── assets/
+│   └── css/
+│       └── theme.css     # CSS-тема
+├── scripts/
+│   └── generate-sitemap.js
 ├── .env                   # Переменные окружения
 └── package.json
 ```
@@ -195,7 +281,10 @@ biolab/
 - Логин и пароль указаны в логе сервера при первом запуске
 
 **Ошибка базы данных:**
-- Удалите `data/biolab.db` и перезапустите — база создастся заново
+- Удалите `data/biolab.db` и перезапустите — база создастся заново (миграции применятся автоматически)
+
+**Sitemap устарел:**
+- Запустите `npm run sitemap` для генерации свежего sitemap.xml
 
 **Email не отправляется:**
 - Проверьте EMAIL_* настройки в .env
@@ -203,7 +292,7 @@ biolab/
 
 ---
 
-**Статус:** ✅ Готов к продакшену  
-**Версия:** 1.2.0  
-**База данных:** SQLite (sql.js)
-**Последнее обновление:** 31.05.2026
+**Статус:** ✅ Готов к продакшену
+**Версия:** 1.3.0
+**База данных:** SQLite (better-sqlite3)
+**Последнее обновление:** 03.06.2026
