@@ -3,6 +3,15 @@
  * Phantom by HTML5 UP | html5up.net | CCA 3.0
  */
 
+// Service Worker registration (PWA)
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => console.log('[SW] Registered:', reg.scope))
+      .catch(err => console.warn('[SW] Registration failed:', err.message));
+  });
+}
+
 // Play initial animations on page load.
 window.addEventListener('load', () => {
   setTimeout(() => document.body.classList.remove('is-preload'), 100);
