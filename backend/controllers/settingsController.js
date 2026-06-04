@@ -25,8 +25,8 @@ function sanitizeText(s, maxLen) {
 }
 
 // Получить или создать настройки по умолчанию
-function getOrCreateSettings() {
-  let settings = db.findOne('settings', { _id: 'main' });
+async function getOrCreateSettings() {
+  let settings = await db.findOne('settings', { _id: 'main' });
   if (!settings) {
     const defaultSettings = {
       _id: 'main',
@@ -38,7 +38,7 @@ function getOrCreateSettings() {
       aboutText: 'Школьная биолаборатория. Выращиваем растения в собственной теплице, проводим исследовательские проекты и продаём саженцы по доступным ценам.',
       updatedAt: new Date().toISOString()
     };
-    db.insert('settings', defaultSettings);
+    await db.insert('settings', defaultSettings);
     settings = defaultSettings;
   }
   return settings;
@@ -53,10 +53,10 @@ function parseSettings(s) {
   return parsed;
 }
 
-// GET /api/settings — публичный
+// GET /api/settings - публичный
 exports.getSettings = async (req, res) => {
   try {
-    const settings = getOrCreateSettings();
+    const settings = await getOrCreateSettings();
     const parsed = parseSettings(settings);
     res.json({
       email: parsed.email,
@@ -72,14 +72,14 @@ exports.getSettings = async (req, res) => {
   }
 };
 
-// PUT /api/settings — только админ
+// PUT /api/settings - только админ
 exports.updateSettings = async (req, res) => {
   try {
     const body = req.body || {};
     const errors = [];
 
     // Получаем текущие
-    let settings = getOrCreateSettings();
+    let settings = await getOrCreateSettings();
     const current = parseSettings(settings);
 
     // Обновляем поля
@@ -141,7 +141,7 @@ exports.updateSettings = async (req, res) => {
     current.updatedAt = new Date().toISOString();
     current.socials = JSON.stringify(current.socials);
 
-    db.updateOne('settings', { _id: 'main' }, current);
+    await db.updateOne('settings', { _id: 'main' }, current);
 
     res.json({
       message: 'Настройки сохранены',

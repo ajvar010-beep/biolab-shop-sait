@@ -1,6 +1,6 @@
 /**
- * Biolab Server - SQLite версия
- * Бесплатный деплой без MongoDB
+ * Biolab Server
+ * Поддерживает SQLite (локально) и PostgreSQL (production на Render)
  */
 require('dotenv').config();
 const path = require('path');
@@ -29,7 +29,7 @@ assertEnv();
 
 const app = express();
 
-// ===== Инициализация SQLite =====
+// ===== Инициализация базы данных =====
 const DATA_DIR = path.resolve(__dirname, '..', 'data');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
@@ -38,20 +38,39 @@ const DB_PATH = process.env.SQLITE_DB_PATH
   : path.join(DATA_DIR, 'biolab.db');
 
 db.init(DB_PATH);
-console.log('✅ SQLite база данных инициализирована');
 
-// Создаём админа по умолчанию если его нет
-authController.createDefaultAdmin('admin', 'AdminDemo2026')
-  .then(created => {
-    if (created) {
-      console.log('✅ Админ создан: admin / AdminDemo2026');
-    } else {
-      console.log('ℹ️ Админ уже существует');
-    }
-  })
-  .catch(err => {
-    console.error('⚠️ Ошибка создания админа:', err.message);
-  });
+// Для PostgreSQL нужно ждать миграции (асинхронно)
+const dbType = process.env.DATABASE_URL ? 'pg' : 'sqlite';
+
+if (dbType === 'pg') {
+  // PostgreSQL - ждём инициализации и миграций
+  db.runMigrations()
+    .then(() => {
+      console.log('[PostgreSQL] База данных инициализирована');
+      initAdmin();
+    })
+    .catch(err => {
+      console.error('[PostgreSQL] Ошибка инициализации:', err.message);
+      process.exit(1);
+    });
+} else {
+  console.log('[SQLite] База данных инициализирована:', DB_PATH);
+  initAdmin();
+}
+
+function initAdmin() {
+  authController.createDefaultAdmin('admin', 'AdminDemo2026')
+    .then(created => {
+      if (created) {
+        console.log('✅ Админ создан: admin / AdminDemo2026');
+      } else {
+        console.log('ℹ️ Админ уже существует');
+      }
+    })
+    .catch(err => {
+      console.error('⚠️ Ошибка создания админа:', err.message);
+    });
+}
 
 // ===== Безопасность заголовков =====
 app.use(helmet({

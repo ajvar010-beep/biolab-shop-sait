@@ -25,7 +25,7 @@ function makeSlug(name) {
 
 exports.getAllCategories = async (req, res) => {
   try {
-    const categories = db.find('categories');
+    const categories = await db.find('categories');
     categories.sort((a, b) => a.name.localeCompare(b.name, 'ru'));
     res.json(categories);
   } catch (error) {
@@ -60,7 +60,7 @@ exports.createCategory = async (req, res) => {
     }
 
     // Проверяем дубликаты
-    const existing = db.findOne('categories', { name: trimmedName });
+    const existing = await db.findOne('categories', { name: trimmedName });
     if (existing) {
       return res.status(400).json({ message: 'Категория с таким названием уже существует' });
     }
@@ -75,7 +75,7 @@ exports.createCategory = async (req, res) => {
       createdAt: now
     };
 
-    db.insert('categories', category);
+    await db.insert('categories', category);
     res.status(201).json(category);
   } catch (error) {
     console.error('Ошибка создания категории:', error.message);
@@ -85,20 +85,20 @@ exports.createCategory = async (req, res) => {
 
 exports.deleteCategory = async (req, res) => {
   try {
-    const category = db.findOne('categories', { _id: req.params.id });
+    const category = await db.findOne('categories', { _id: req.params.id });
     if (!category) {
       return res.status(404).json({ message: 'Категория не найдена' });
     }
 
     // Проверяем, что нет товаров в этой категории
-    const products = db.find('products', { category: category.name });
+    const products = await db.find('products', { category: category.name });
     if (products.length > 0) {
       return res.status(400).json({
         message: `В категории есть товары (${products.length}). Сначала переместите их в другую категорию.`
       });
     }
 
-    db.deleteOne('categories', { _id: req.params.id });
+    await db.deleteOne('categories', { _id: req.params.id });
     res.json({ message: 'Категория удалена' });
   } catch (error) {
     console.error('Ошибка удаления категории:', error.message);

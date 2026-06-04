@@ -68,8 +68,8 @@ exports.createOrder = async (req, res) => {
       requested.push({ productId: it.productId, quantity: qty });
     }
 
-    // Начинаем транзакцию — все операции атомарны
-    db.beginTransaction();
+    // Начинаем транзакцию - все операции атомарны
+    await db.beginTransaction();
 
     try {
       const orderItems = [];
@@ -77,22 +77,22 @@ exports.createOrder = async (req, res) => {
 
       // Обрабатываем каждый товар внутри транзакции
       for (const { productId, quantity } of requested) {
-        const product = db.findOne('products', { _id: productId });
+        const product = await db.findOne('products', { _id: productId });
 
         if (!product) {
-          db.rollback();
+          await db.rollback();
           return res.status(400).json({ message: `Товар не найден: ${productId}` });
         }
 
         if (product.stock < quantity) {
-          db.rollback();
+          await db.rollback();
           return res.status(400).json({
             message: `Недостаточно товара "${product.title}" (в наличии: ${product.stock})`
           });
         }
 
         // Уменьшаем остаток внутри транзакции
-        db.updateOne('products', { _id: productId }, { stock: product.stock - quantity });
+        await db.updateOne('products', { _id: productId }, { stock: product.stock - quantity });
 
         orderItems.push({
           productId: product._id,
@@ -107,14 +107,14 @@ exports.createOrder = async (req, res) => {
       let orderCode = null;
       for (let i = 0; i < 5; i++) {
         const candidate = generateOrderCode();
-        const exists = db.findOne('orders', { orderCode: candidate });
+        const exists = await db.findOne('orders', { orderCode: candidate });
         if (!exists) {
           orderCode = candidate;
           break;
         }
       }
       if (!orderCode) {
-        db.rollback();
+        await db.rollback();
         return res.status(500).json({ message: 'Не удалось сгенерировать код заказа' });
       }
 
@@ -135,10 +135,10 @@ exports.createOrder = async (req, res) => {
         updatedAt: now
       };
 
-      db.insert('orders', orderData);
+      await db.insert('orders', orderData);
 
       // Фиксируем транзакцию
-      db.commit();
+      await db.commit();
 
       // Отправляем уведомление в Telegram (асинхронно, не блокируем ответ)
       const fullOrder = { ...orderData, items: orderItems };
@@ -154,7 +154,7 @@ exports.createOrder = async (req, res) => {
         }
       });
     } catch (error) {
-      db.rollback();
+      await db.rollback();
       throw error;
     }
   } catch (error) {
@@ -172,7 +172,7 @@ exports.getAllOrders = async (req, res) => {
       query.status = status;
     }
 
-    let orders = db.find('orders', query);
+    let orders = await db.find('orders', query);
     orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
     const skip = Math.max(parseInt(req.query.skip, 10) || 0, 0);
@@ -186,7 +186,7 @@ exports.getAllOrders = async (req, res) => {
       return o;
     });
 
-    const total = db.countDocuments('orders', query);
+    const total = await db.countDocuments('orders', query);
     res.json({ orders, total, limit, skip });
   } catch (error) {
     console.error('Ошибка получения заказов:', error.message);
@@ -202,7 +202,7 @@ exports.getOrderByCode = async (req, res) => {
       return res.status(400).json({ message: 'Неверный формат кода' });
     }
 
-    const order = db.findOne('orders', { orderCode: code });
+    const order = await db.findOne('orders', { orderCode: code });
     if (!order) return res.status(404).json({ message: 'Заказ не найден' });
 
     const items = order.items && typeof order.items === 'string'
@@ -231,7 +231,7 @@ exports.getOrdersByPhone = async (req, res) => {
       return res.status(400).json({ message: 'Неверный формат телефона' });
     }
 
-    let orders = db.find('orders', { customerPhone: phone });
+    let orders = await db.find('orders', { customerPhone: phone });
     orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     orders = orders.slice(0, 50);
 
@@ -266,7 +266,7 @@ exports.getOrderByCodeAdmin = async (req, res) => {
       return res.status(400).json({ message: 'Неверный формат кода' });
     }
 
-    const order = db.findOne('orders', { orderCode: code });
+    const order = await db.findOne('orders', { orderCode: code });
     if (!order) return res.status(404).json({ message: 'Заказ не найден' });
 
     if (order.items && typeof order.items === 'string') {
@@ -288,19 +288,19 @@ exports.completeOrder = async (req, res) => {
       return res.status(400).json({ message: 'Неверный формат кода' });
     }
 
-    const order = db.findOne('orders', { orderCode: code, status: 'pending' });
+    const order = await db.findOne('orders', { orderCode: code, status: 'pending' });
     if (!order) {
       return res.status(400).json({ message: 'Заказ нельзя выдать (уже выдан, отменён или не найден)' });
     }
 
     const now = new Date().toISOString();
-    db.updateOne('orders', { _id: order._id }, {
+    await db.updateOne('orders', { _id: order._id }, {
       status: 'completed',
       completedAt: now,
       updatedAt: now
     });
 
-    const updated = db.findOne('orders', { _id: order._id });
+    const updated = await db.findOne('orders', { _id: order._id });
     if (updated.items && typeof updated.items === 'string') {
       try { updated.items = JSON.parse(updated.items); } catch (_) { updated.items = []; }
     }
@@ -325,7 +325,7 @@ exports.cancelOrder = async (req, res) => {
       ? req.body.reason.slice(0, 500)
       : '';
 
-    const order = db.findOne('orders', { orderCode: code, status: 'pending' });
+    const order = await db.findOne('orders', { orderCode: code, status: 'pending' });
     if (!order) {
       return res.status(400).json({ message: 'Заказ нельзя отменить (уже выдан, отменён или не найден)' });
     }
@@ -336,23 +336,23 @@ exports.cancelOrder = async (req, res) => {
       : (order.items || []);
 
     for (const item of items) {
-      const product = db.findOne('products', { _id: item.productId });
+      const product = await db.findOne('products', { _id: item.productId });
       if (product) {
-        db.updateOne('products', { _id: item.productId }, {
+        await db.updateOne('products', { _id: item.productId }, {
           stock: product.stock + item.quantity
         });
       }
     }
 
     const now = new Date().toISOString();
-    db.updateOne('orders', { _id: order._id }, {
+    await db.updateOne('orders', { _id: order._id }, {
       status: 'cancelled',
       cancelledAt: now,
       cancelReason: reason,
       updatedAt: now
     });
 
-    const updated = db.findOne('orders', { _id: order._id });
+    const updated = await db.findOne('orders', { _id: order._id });
     if (updated.items && typeof updated.items === 'string') {
       try { updated.items = JSON.parse(updated.items); } catch (_) { updated.items = []; }
     }

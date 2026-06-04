@@ -1,6 +1,6 @@
 /**
- * SQLite Migrator для Biolab (local/development)
- * Синхронные миграции — SQLite better-sqlite3 не требует await
+ * PostgreSQL Migrator для Biolab
+ * Выполняет миграции по порядку, пропуская уже выполненные
  */
 const fs = require('fs');
 const path = require('path');
@@ -18,18 +18,18 @@ function loadMigrations() {
   }).sort((a, b) => a.num - b.num);
 }
 
-function run(db) {
+async function run(db) {
   // Создаём таблицу миграций если её нет
-  db.runMigration(`
+  await db.runMigration(`
     CREATE TABLE IF NOT EXISTS _migrations (
       id INTEGER PRIMARY KEY,
-      name TEXT NOT NULL,
-      applied_at TEXT DEFAULT CURRENT_TIMESTAMP
+      name VARCHAR(255) NOT NULL,
+      applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
 
   // Получаем уже выполненные миграции
-  const applied = db.all('SELECT id, name FROM _migrations ORDER BY id');
+  const applied = await db.all('SELECT id, name FROM _migrations ORDER BY id');
   const appliedIds = new Set(applied.map(m => m.id));
 
   const migrations = loadMigrations();
@@ -43,17 +43,14 @@ function run(db) {
 
     console.log(`[Миграция ${migration.num}] Выполняем: ${migration.name}...`);
 
-    db.beginTransaction();
     try {
-      migration.up(db);
+      await migration.up(db);
 
-      db.run('INSERT INTO _migrations (id, name) VALUES (?, ?)', [migration.id, migration.name]);
+      await db.run('INSERT INTO _migrations (id, name) VALUES ($1, $2)', [migration.id, migration.name]);
 
-      db.commit();
       console.log(`[Миграция ${migration.num}] ✅ Выполнена`);
       executed++;
     } catch (error) {
-      db.rollback();
       console.error(`[Миграция ${migration.num}] ❌ Ошибка: ${error.message}`);
       throw error;
     }

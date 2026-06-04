@@ -18,7 +18,7 @@ const authMiddleware = async (req, res, next) => {
       return res.status(401).json({ message: 'Недействительный токен' });
     }
 
-    const admin = db.findOne('users', { _id: decoded.adminId });
+    const admin = await db.findOne('users', { _id: decoded.adminId });
     if (!admin) {
       return res.status(401).json({ message: 'Админ не найден' });
     }

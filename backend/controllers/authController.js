@@ -39,7 +39,7 @@ exports.register = async (req, res) => {
 
     const trimmedUsername = username.trim();
 
-    const existingAdmin = db.findOne('users', { username: trimmedUsername });
+    const existingAdmin = await db.findOne('users', { username: trimmedUsername });
     if (existingAdmin) {
       return res.status(400).json({ message: 'Не удалось создать админа' });
     }
@@ -47,7 +47,7 @@ exports.register = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, BCRYPT_ROUNDS);
     const id = 'admin_' + crypto.randomUUID().replace(/-/g, '').slice(0, 16);
 
-    db.insert('users', {
+    await db.insert('users', {
       _id: id,
       username: trimmedUsername,
       password: hashedPassword,
@@ -71,7 +71,7 @@ exports.login = async (req, res) => {
       return res.status(400).json({ message: 'Укажите username и password' });
     }
 
-    const admin = db.findOne('users', { username: username.trim() });
+    const admin = await db.findOne('users', { username: username.trim() });
 
     // Dummy hash для безопасности (чтобы не давать информацию о наличии пользователя)
     const dummyHash = '$2b$12$abcdefghijklmnopqrstuv1234567890ABCDEFGHIJKLMNOPQRSTUV';
@@ -117,9 +117,9 @@ exports.verify = async (req, res) => {
 // Logout - инкрементируем tokenVersion
 exports.logout = async (req, res) => {
   try {
-    const admin = db.findOne('users', { _id: req.adminId });
+    const admin = await db.findOne('users', { _id: req.adminId });
     if (admin) {
-      db.updateOne('users', { _id: req.adminId }, { tokenVersion: (admin.tokenVersion || 0) + 1 });
+      await db.updateOne('users', { _id: req.adminId }, { tokenVersion: (admin.tokenVersion || 0) + 1 });
     }
     res.json({ message: 'Выход выполнен' });
   } catch (error) {
@@ -131,11 +131,11 @@ exports.logout = async (req, res) => {
 // Создание админа по умолчанию (для инициализации)
 exports.createDefaultAdmin = async (username, password) => {
   try {
-    const existing = db.findOne('users', { username });
+    const existing = await db.findOne('users', { username });
     if (existing) return false;
 
     const hashedPassword = await bcrypt.hash(password, BCRYPT_ROUNDS);
-    db.insert('users', {
+    await db.insert('users', {
       _id: 'admin_' + crypto.randomUUID().replace(/-/g, '').slice(0, 16),
       username,
       password: hashedPassword,

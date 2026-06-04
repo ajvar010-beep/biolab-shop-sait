@@ -37,7 +37,7 @@ function uploadAsync(req, res) {
   });
 }
 
-// Удалить временно загруженный файл из памяти (больше не нужно — используем memoryStorage)
+// Удалить временно загруженный файл из памяти (больше не нужно - используем memoryStorage)
 async function deleteUploadedFile(file) {
   // memoryStorage не создаёт файл, ничего не делаем
 }
@@ -82,12 +82,12 @@ function validateProductPayload(body, { partial = false } = {}) {
   }
   if (body.price !== undefined || !partial) {
     const n = Number(body.price);
-    if (!Number.isFinite(n) || n < 0 || n > 1000000) errors.push('Цена: 0 — 1 000 000');
+    if (!Number.isFinite(n) || n < 0 || n > 1000000) errors.push('Цена: 0 - 1 000 000');
     else out.price = n;
   }
   if (body.salePrice !== undefined && body.salePrice !== null && body.salePrice !== '') {
     const n = Number(body.salePrice);
-    if (!Number.isFinite(n) || n < 0 || n > 1000000) errors.push('Акционная цена: 0 — 1 000 000');
+    if (!Number.isFinite(n) || n < 0 || n > 1000000) errors.push('Акционная цена: 0 - 1 000 000');
     else out.salePrice = n;
   } else {
     out.salePrice = null;
@@ -113,7 +113,7 @@ function validateProductPayload(body, { partial = false } = {}) {
   }
   if (body.stock !== undefined) {
     const n = Number(body.stock);
-    if (!Number.isFinite(n) || n < 0 || n > 100000) errors.push('Остаток: 0 — 100 000');
+    if (!Number.isFinite(n) || n < 0 || n > 100000) errors.push('Остаток: 0 - 100 000');
     else out.stock = Math.floor(n);
   } else if (!partial) {
     out.stock = 0;
@@ -156,7 +156,7 @@ exports.getAllProducts = async (req, res) => {
       query.category = category.trim();
     }
 
-    let products = db.find('products', query);
+    let products = await db.find('products', query);
 
     // Сортировка
     if (sort === 'price_asc') {
@@ -197,7 +197,7 @@ exports.getAllProducts = async (req, res) => {
 
 exports.getProductById = async (req, res) => {
   try {
-    const product = db.findOne('products', { _id: req.params.id });
+    const product = await db.findOne('products', { _id: req.params.id });
     if (!product) return res.status(404).json({ message: 'Товар не найден' });
 
     // Парсим images
@@ -227,7 +227,7 @@ exports.createProduct = async (req, res) => {
     }
 
     // Проверяем существование категории
-    const categoryExists = db.findOne('categories', { name: data.category });
+    const categoryExists = await db.findOne('categories', { name: data.category });
     if (!categoryExists) {
       await deleteUploadedFile(req.file);
       return res.status(400).json({ message: 'Категория не найдена' });
@@ -244,7 +244,7 @@ exports.createProduct = async (req, res) => {
     data.createdAt = new Date().toISOString();
     data.updatedAt = data.createdAt;
 
-    db.insert('products', data);
+    await db.insert('products', data);
 
     // Парсим images для ответа
     if (data.images && typeof data.images === 'string') {
@@ -267,7 +267,7 @@ exports.updateProduct = async (req, res) => {
   }
 
   try {
-    const product = db.findOne('products', { _id: req.params.id });
+    const product = await db.findOne('products', { _id: req.params.id });
     if (!product) {
       await deleteUploadedFile(req.file);
       return res.status(404).json({ message: 'Товар не найден' });
@@ -280,7 +280,7 @@ exports.updateProduct = async (req, res) => {
     }
 
     if (data.category) {
-      const categoryExists = db.findOne('categories', { name: data.category });
+      const categoryExists = await db.findOne('categories', { name: data.category });
       if (!categoryExists) {
         await deleteUploadedFile(req.file);
         return res.status(400).json({ message: 'Категория не найдена' });
@@ -295,7 +295,7 @@ exports.updateProduct = async (req, res) => {
 
     data.updatedAt = new Date().toISOString();
 
-    db.updateOne('products', { _id: req.params.id }, data);
+    await db.updateOne('products', { _id: req.params.id }, data);
 
     // Удаляем старое изображение, если его заменили
     if (req.file && oldImageUrl && oldImageUrl !== data.imageUrl) {
@@ -303,7 +303,7 @@ exports.updateProduct = async (req, res) => {
     }
 
     // Получаем обновлённый товар
-    const updated = db.findOne('products', { _id: req.params.id });
+    const updated = await db.findOne('products', { _id: req.params.id });
     if (updated.images && typeof updated.images === 'string') {
       try { updated.images = JSON.parse(updated.images); } catch (_) { updated.images = []; }
     }
@@ -318,10 +318,10 @@ exports.updateProduct = async (req, res) => {
 
 exports.deleteProduct = async (req, res) => {
   try {
-    const product = db.findOne('products', { _id: req.params.id });
+    const product = await db.findOne('products', { _id: req.params.id });
     if (!product) return res.status(404).json({ message: 'Товар не найден' });
 
-    db.deleteOne('products', { _id: req.params.id });
+    await db.deleteOne('products', { _id: req.params.id });
 
     // Удаляем картинку с диска
     if (product.imageUrl) await deleteOldImage(product.imageUrl);
