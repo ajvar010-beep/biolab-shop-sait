@@ -169,23 +169,26 @@ app.use('/uploads', express.static(uploadsDir, {
   }
 }));
 
-// Public directory или fallback
+// PWA-файлы (manifest.json, sw.js, иконки, offline.html) — из public/.
+// index:false, чтобы public/ не считался корнем сайта (там нет index.html).
 if (fs.existsSync(PUBLIC_DIR)) {
-  app.use(express.static(PUBLIC_DIR, { index: 'index.html' }));
-} else {
-  app.use('/assets', express.static(path.join(ROOT, 'assets')));
-  app.use('/images', express.static(path.join(ROOT, 'images')));
-  app.use('/admin', express.static(path.join(ROOT, 'admin')));
-
-  const safeFiles = ['index.html', 'favicon.ico', 'robots.txt'];
-  app.get(['/', ...safeFiles.map((f) => `/${f}`)], (req, res, next) => {
-    const file = req.path === '/' ? 'index.html' : req.path.slice(1);
-    if (!safeFiles.includes(file)) return next();
-    const fullPath = path.join(ROOT, file);
-    if (!fs.existsSync(fullPath)) return next();
-    res.sendFile(fullPath);
-  });
+  app.use(express.static(PUBLIC_DIR, { index: false }));
 }
+
+// Фронтенд магазина и админки — из корня репозитория, по белому списку
+// (не отдаём backend/, .env и прочие служебные файлы).
+app.use('/assets', express.static(path.join(ROOT, 'assets')));
+app.use('/images', express.static(path.join(ROOT, 'images')));
+app.use('/admin', express.static(path.join(ROOT, 'admin')));
+
+const safeFiles = ['index.html', 'favicon.ico', 'favicon.svg', 'robots.txt'];
+app.get(['/', ...safeFiles.map((f) => `/${f}`)], (req, res, next) => {
+  const file = req.path === '/' ? 'index.html' : req.path.slice(1);
+  if (req.path !== '/' && !safeFiles.includes(file)) return next();
+  const fullPath = path.join(ROOT, file);
+  if (!fs.existsSync(fullPath)) return next();
+  res.sendFile(fullPath);
+});
 
 // ===== Routes =====
 app.use('/api/auth', require('./routes/auth'));
@@ -204,12 +207,10 @@ app.use('/api', (req, res) => {
   res.status(404).json({ message: 'Endpoint не найден' });
 });
 
-// SPA-fallback
+// SPA-fallback — на любой GET отдаём главную магазина
 app.use((req, res, next) => {
   if (req.method !== 'GET') return next();
-  const indexPath = fs.existsSync(PUBLIC_DIR)
-    ? path.join(PUBLIC_DIR, 'index.html')
-    : path.join(ROOT, 'index.html');
+  const indexPath = path.join(ROOT, 'index.html');
   if (fs.existsSync(indexPath)) return res.sendFile(indexPath);
   next();
 });
