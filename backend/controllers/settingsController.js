@@ -1,5 +1,5 @@
 /**
- * Settings Controller - SQLite версия
+ * Settings Controller — поддерживает SQLite и PostgreSQL
  */
 const db = require('../config/database');
 

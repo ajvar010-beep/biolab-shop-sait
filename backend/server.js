@@ -29,7 +29,7 @@ assertEnv();
 
 const app = express();
 
-// ===== Инициализация базы данных =====
+// ===== Конфигурация базы данных =====
 const DATA_DIR = path.resolve(__dirname, '..', 'data');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
@@ -37,39 +37,27 @@ const DB_PATH = process.env.SQLITE_DB_PATH
   ? path.resolve(process.env.SQLITE_DB_PATH)
   : path.join(DATA_DIR, 'biolab.db');
 
-db.init(DB_PATH);
+const dbType = process.env.DATABASE_URL ? 'postgres' : 'sqlite';
 
-// Для PostgreSQL нужно ждать миграции (асинхронно)
-const dbType = process.env.DATABASE_URL ? 'pg' : 'sqlite';
-
-if (dbType === 'pg') {
-  // PostgreSQL - ждём инициализации и миграций
-  db.runMigrations()
-    .then(() => {
-      console.log('[PostgreSQL] База данных инициализирована');
-      initAdmin();
-    })
-    .catch(err => {
-      console.error('[PostgreSQL] Ошибка инициализации:', err.message);
-      process.exit(1);
-    });
-} else {
-  console.log('[SQLite] База данных инициализирована:', DB_PATH);
-  initAdmin();
+// Создаём админа по умолчанию (идемпотентно). Логин/пароль — из env с фолбэком.
+async function initAdmin() {
+  const username = process.env.ADMIN_USERNAME || 'admin';
+  const password = process.env.ADMIN_PASSWORD || 'AdminDemo2026';
+  try {
+    const created = await authController.createDefaultAdmin(username, password);
+    console.log(created ? `✅ Админ создан: ${username}` : 'ℹ️ Админ уже существует');
+  } catch (err) {
+    console.error('⚠️ Ошибка создания админа:', err.message);
+  }
 }
 
-function initAdmin() {
-  authController.createDefaultAdmin('admin', 'AdminDemo2026')
-    .then(created => {
-      if (created) {
-        console.log('✅ Админ создан: admin / AdminDemo2026');
-      } else {
-        console.log('ℹ️ Админ уже существует');
-      }
-    })
-    .catch(err => {
-      console.error('⚠️ Ошибка создания админа:', err.message);
-    });
+// Полная инициализация БД: подключение → миграции (создание таблиц) → админ.
+// Вызывается из bootstrap() внизу файла, ДО app.listen().
+async function initDatabase() {
+  db.init(DB_PATH);
+  await db.runMigrations();
+  console.log(`🗄️ База данных готова (${dbType})`);
+  await initAdmin();
 }
 
 // ===== Безопасность заголовков =====
@@ -169,10 +157,9 @@ app.use('/uploads', express.static(uploadsDir, {
   }
 }));
 
-// PWA-файлы (manifest.json, sw.js, иконки, offline.html) — из public/.
-// index:false, чтобы public/ не считался корнем сайта (там нет index.html).
+// Фронтенд магазина (HTML, PWA-файлы, manifest.json, sw.js) — из public/
 if (fs.existsSync(PUBLIC_DIR)) {
-  app.use(express.static(PUBLIC_DIR, { index: false }));
+  app.use(express.static(PUBLIC_DIR));
 }
 
 // Фронтенд магазина и админки — из корня репозитория, по белому списку
@@ -181,13 +168,16 @@ app.use('/assets', express.static(path.join(ROOT, 'assets')));
 app.use('/images', express.static(path.join(ROOT, 'images')));
 app.use('/admin', express.static(path.join(ROOT, 'admin')));
 
-const safeFiles = ['index.html', 'favicon.ico', 'favicon.svg', 'robots.txt'];
-app.get(['/', ...safeFiles.map((f) => `/${f}`)], (req, res, next) => {
-  const file = req.path === '/' ? 'index.html' : req.path.slice(1);
-  if (req.path !== '/' && !safeFiles.includes(file)) return next();
-  const fullPath = path.join(ROOT, file);
-  if (!fs.existsSync(fullPath)) return next();
-  res.sendFile(fullPath);
+// Корневые файлы (favicon.ico, favicon.svg, robots.txt) — ищем сначала в public/, потом в корне
+const safeFiles = ['favicon.ico', 'favicon.svg', 'robots.txt'];
+app.get(safeFiles.map((f) => `/${f}`), (req, res, next) => {
+  const file = req.path.slice(1);
+  if (!safeFiles.includes(file)) return next();
+  const publicPath = path.join(PUBLIC_DIR, file);
+  if (fs.existsSync(publicPath)) return res.sendFile(publicPath);
+  const rootPath = path.join(ROOT, file);
+  if (fs.existsSync(rootPath)) return res.sendFile(rootPath);
+  next();
 });
 
 // ===== Routes =====
@@ -199,7 +189,7 @@ app.use('/api/settings', require('./routes/settings'));
 
 // Health-check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', version: '1.3.0', database: 'sqlite' });
+  res.json({ status: 'ok', version: '1.3.0', database: dbType });
 });
 
 // 404 для API
@@ -207,11 +197,13 @@ app.use('/api', (req, res) => {
   res.status(404).json({ message: 'Endpoint не найден' });
 });
 
-// SPA-fallback — на любой GET отдаём главную магазина
+// SPA-fallback — на любой GET отдаём главную магазина (ищем в public/)
 app.use((req, res, next) => {
   if (req.method !== 'GET') return next();
-  const indexPath = path.join(ROOT, 'index.html');
-  if (fs.existsSync(indexPath)) return res.sendFile(indexPath);
+  const publicIndex = path.join(PUBLIC_DIR, 'index.html');
+  if (fs.existsSync(publicIndex)) return res.sendFile(publicIndex);
+  const rootIndex = path.join(ROOT, 'index.html');
+  if (fs.existsSync(rootIndex)) return res.sendFile(rootIndex);
   next();
 });
 
@@ -235,13 +227,21 @@ app.use((error, req, res, next) => {
 
 const PORT = process.env.PORT || 3000;
 
-// Запускаем сервер только при прямом запуске (не при импорте из тестов)
-if (require.main === module) {
+// Запуск: сначала готовим БД (миграции + админ), ТОЛЬКО потом слушаем порт,
+// чтобы первые запросы не попали в пустую базу.
+async function bootstrap() {
+  try {
+    await initDatabase();
+  } catch (err) {
+    console.error('❌ Ошибка инициализации БД:', err.message);
+    process.exit(1);
+  }
+
   const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Сервер запущен на порту ${PORT}`);
     console.log(`📱 Локальный доступ: http://localhost:${PORT}`);
     console.log(`🌐 Режим: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`🗄️ База данных: SQLite (${DB_PATH})`);
+    console.log(`🗄️ База данных: ${dbType}`);
   });
 
   // Graceful shutdown
@@ -253,6 +253,11 @@ if (require.main === module) {
   }
   process.on('SIGTERM', () => shutdown('SIGTERM'));
   process.on('SIGINT', () => shutdown('SIGINT'));
+}
+
+// Прямой запуск (npm start). В тестах БД поднимает tests/setup.js — bootstrap не нужен.
+if (require.main === module && process.env.NODE_ENV !== 'test') {
+  bootstrap();
 }
 
 module.exports = app;

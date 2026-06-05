@@ -1,6 +1,6 @@
 /**
  * SQLite Migrator для Biolab (local/development)
- * Синхронные миграции — SQLite better-sqlite3 не требует await
+ * Методы database-sqlite.js асинхронные, поэтому миграции тоже выполняем через await.
  */
 const fs = require('fs');
 const path = require('path');
@@ -8,7 +8,8 @@ const path = require('path');
 function loadMigrations() {
   const migrationsDir = path.join(__dirname);
   const files = fs.readdirSync(migrationsDir)
-    .filter(f => /^(\d{3})_.*\.js$/.test(f))
+    // Только SQLite-миграции: NNN_*.js, но НЕ *-pg.js (те для PostgreSQL)
+    .filter(f => /^\d{3}_.*\.js$/.test(f) && !f.endsWith('-pg.js'))
     .sort();
 
   return files.map(f => {
@@ -18,9 +19,9 @@ function loadMigrations() {
   }).sort((a, b) => a.num - b.num);
 }
 
-function run(db) {
+async function run(db) {
   // Создаём таблицу миграций если её нет
-  db.runMigration(`
+  await db.runMigration(`
     CREATE TABLE IF NOT EXISTS _migrations (
       id INTEGER PRIMARY KEY,
       name TEXT NOT NULL,
@@ -29,7 +30,7 @@ function run(db) {
   `);
 
   // Получаем уже выполненные миграции
-  const applied = db.all('SELECT id, name FROM _migrations ORDER BY id');
+  const applied = await db.all('SELECT id, name FROM _migrations ORDER BY id');
   const appliedIds = new Set(applied.map(m => m.id));
 
   const migrations = loadMigrations();
@@ -43,17 +44,17 @@ function run(db) {
 
     console.log(`[Миграция ${migration.num}] Выполняем: ${migration.name}...`);
 
-    db.beginTransaction();
+    await db.beginTransaction();
     try {
-      migration.up(db);
+      await migration.up(db);
 
-      db.run('INSERT INTO _migrations (id, name) VALUES (?, ?)', [migration.id, migration.name]);
+      await db.run('INSERT INTO _migrations (id, name) VALUES (?, ?)', [migration.id, migration.name]);
 
-      db.commit();
+      await db.commit();
       console.log(`[Миграция ${migration.num}] ✅ Выполнена`);
       executed++;
     } catch (error) {
-      db.rollback();
+      await db.rollback();
       console.error(`[Миграция ${migration.num}] ❌ Ошибка: ${error.message}`);
       throw error;
     }

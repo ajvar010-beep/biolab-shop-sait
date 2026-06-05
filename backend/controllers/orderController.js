@@ -1,5 +1,5 @@
 /**
- * Order Controller - SQLite версия
+ * Order Controller — поддерживает SQLite и PostgreSQL
  */
 const crypto = require('crypto');
 const db = require('../config/database');
@@ -68,8 +68,10 @@ exports.createOrder = async (req, res) => {
       requested.push({ productId: it.productId, quantity: qty });
     }
 
-    // Начинаем транзакцию - все операции атомарны
-    await db.beginTransaction();
+    // Начинаем транзакцию — все операции атомарны
+    // Для PostgreSQL beginTransaction() возвращает выделенный клиент,
+    // для SQLite возвращает null (используется общее соединение)
+    const tx = await db.beginTransaction();
 
     try {
       const orderItems = [];
@@ -77,22 +79,22 @@ exports.createOrder = async (req, res) => {
 
       // Обрабатываем каждый товар внутри транзакции
       for (const { productId, quantity } of requested) {
-        const product = await db.findOne('products', { _id: productId });
+        const product = await db.findOne('products', { _id: productId }, tx);
 
         if (!product) {
-          await db.rollback();
+          await db.rollback(tx);
           return res.status(400).json({ message: `Товар не найден: ${productId}` });
         }
 
         if (product.stock < quantity) {
-          await db.rollback();
+          await db.rollback(tx);
           return res.status(400).json({
             message: `Недостаточно товара "${product.title}" (в наличии: ${product.stock})`
           });
         }
 
         // Уменьшаем остаток внутри транзакции
-        await db.updateOne('products', { _id: productId }, { stock: product.stock - quantity });
+        await db.updateOne('products', { _id: productId }, { stock: product.stock - quantity }, tx);
 
         orderItems.push({
           productId: product._id,
@@ -107,14 +109,14 @@ exports.createOrder = async (req, res) => {
       let orderCode = null;
       for (let i = 0; i < 5; i++) {
         const candidate = generateOrderCode();
-        const exists = await db.findOne('orders', { orderCode: candidate });
+        const exists = await db.findOne('orders', { orderCode: candidate }, tx);
         if (!exists) {
           orderCode = candidate;
           break;
         }
       }
       if (!orderCode) {
-        await db.rollback();
+        await db.rollback(tx);
         return res.status(500).json({ message: 'Не удалось сгенерировать код заказа' });
       }
 
@@ -135,10 +137,10 @@ exports.createOrder = async (req, res) => {
         updatedAt: now
       };
 
-      await db.insert('orders', orderData);
+      await db.insert('orders', orderData, tx);
 
       // Фиксируем транзакцию
-      await db.commit();
+      await db.commit(tx);
 
       // Отправляем уведомление в Telegram (асинхронно, не блокируем ответ)
       const fullOrder = { ...orderData, items: orderItems };
@@ -330,34 +332,44 @@ exports.cancelOrder = async (req, res) => {
       return res.status(400).json({ message: 'Заказ нельзя отменить (уже выдан, отменён или не найден)' });
     }
 
-    // Возвращаем товары на склад
-    const items = order.items && typeof order.items === 'string'
-      ? JSON.parse(order.items)
-      : (order.items || []);
+    // Отмена заказа — атомарная операция в транзакции
+    const tx = await db.beginTransaction();
 
-    for (const item of items) {
-      const product = await db.findOne('products', { _id: item.productId });
-      if (product) {
-        await db.updateOne('products', { _id: item.productId }, {
-          stock: product.stock + item.quantity
-        });
+    try {
+      // Возвращаем товары на склад
+      const items = order.items && typeof order.items === 'string'
+        ? JSON.parse(order.items)
+        : (order.items || []);
+
+      for (const item of items) {
+        const product = await db.findOne('products', { _id: item.productId }, tx);
+        if (product) {
+          await db.updateOne('products', { _id: item.productId }, {
+            stock: product.stock + item.quantity
+          }, tx);
+        }
       }
-    }
 
-    const now = new Date().toISOString();
-    await db.updateOne('orders', { _id: order._id }, {
-      status: 'cancelled',
-      cancelledAt: now,
-      cancelReason: reason,
-      updatedAt: now
-    });
+      const now = new Date().toISOString();
+      await db.updateOne('orders', { _id: order._id }, {
+        status: 'cancelled',
+        cancelledAt: now,
+        cancelReason: reason,
+        updatedAt: now
+      }, tx);
+
+      await db.commit(tx);
+    } catch (error) {
+      await db.rollback(tx);
+      throw error;
+    }
 
     const updated = await db.findOne('orders', { _id: order._id });
     if (updated.items && typeof updated.items === 'string') {
       try { updated.items = JSON.parse(updated.items); } catch (_) { updated.items = []; }
     }
 
-      notifications.notifyOrderCancelled(updated).catch(() => {});
+    notifications.notifyOrderCancelled(updated).catch(() => {});
     res.json({ message: 'Заказ отменён, товары возвращены', order: updated });
   } catch (error) {
     console.error('Ошибка отмены заказа:', error.message);

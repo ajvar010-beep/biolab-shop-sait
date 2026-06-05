@@ -8,7 +8,8 @@ const path = require('path');
 function loadMigrations() {
   const migrationsDir = path.join(__dirname);
   const files = fs.readdirSync(migrationsDir)
-    .filter(f => /^(\d{3})_.*\.js$/.test(f))
+    // Только PostgreSQL-миграции: NNN_*-pg.js
+    .filter(f => /^\d{3}_.*-pg\.js$/.test(f))
     .sort();
 
   return files.map(f => {

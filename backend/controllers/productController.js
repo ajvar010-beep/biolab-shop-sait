@@ -1,5 +1,5 @@
 /**
- * Product Controller - SQLite версия
+ * Product Controller — поддерживает SQLite и PostgreSQL
  */
 const db = require('../config/database');
 const multer = require('multer');

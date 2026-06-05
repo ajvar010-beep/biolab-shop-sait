@@ -1,5 +1,5 @@
 /**
- * Auth Controller - SQLite версия
+ * Auth Controller — поддерживает SQLite и PostgreSQL
  */
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');

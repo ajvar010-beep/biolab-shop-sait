@@ -37,9 +37,10 @@ class PostgresDB {
   }
 
   // Выполнить SQL без результата
-  async run(sql, params = []) {
+  async run(sql, params = [], client = null) {
     try {
-      const result = await this.pool.query(sql, params);
+      const executor = client || this.pool;
+      const result = await executor.query(sql, params);
       return { changes: result.rowCount };
     } catch (error) {
       console.error('[PostgreSQL] Run error:', error.message);
@@ -48,9 +49,10 @@ class PostgresDB {
   }
 
   // Выполнить SQL и получить одну строку
-  async get(sql, params = []) {
+  async get(sql, params = [], client = null) {
     try {
-      const result = await this.pool.query(sql, params);
+      const executor = client || this.pool;
+      const result = await executor.query(sql, params);
       const row = result.rows[0];
       return row ? this.parseRow(row) : null;
     } catch (error) {
@@ -60,9 +62,10 @@ class PostgresDB {
   }
 
   // Выполнить SQL и получить все строки
-  async all(sql, params = []) {
+  async all(sql, params = [], client = null) {
     try {
-      const result = await this.pool.query(sql, params);
+      const executor = client || this.pool;
+      const result = await executor.query(sql, params);
       return result.rows.map(r => this.parseRow(r));
     } catch (error) {
       console.error('[PostgreSQL] All error:', error.message);
@@ -70,25 +73,40 @@ class PostgresDB {
     }
   }
 
-  // ===== Обёртки =====
+  // ===== Транзакции (выделенный клиент) =====
 
-  // Начать транзакцию
+  // Начать транзакцию — возвращает клиент, который нужно использовать для запросов внутри транзакции
   async beginTransaction() {
-    await this.pool.query('BEGIN');
+    const client = await this.pool.connect();
+    await client.query('BEGIN');
+    return client;
   }
 
   // Зафиксировать транзакцию
-  async commit() {
-    await this.pool.query('COMMIT');
+  async commit(client) {
+    try {
+      await client.query('COMMIT');
+    } finally {
+      client.release();
+    }
   }
 
   // Откатить транзакцию
-  async rollback() {
-    await this.pool.query('ROLLBACK');
+  async rollback(client) {
+    try {
+      await client.query('ROLLBACK');
+    } finally {
+      client.release();
+    }
+  }
+
+  // Выполнить запрос внутри транзакции (на конкретном клиенте)
+  transactionQuery(client, sql, params = []) {
+    return client.query(sql, params);
   }
 
   // Вставить документ
-  async insert(collection, doc) {
+  async insert(collection, doc, client = null) {
     const fields = Object.keys(doc);
     const values = Object.values(doc).map(v => {
       if (typeof v === 'object') return JSON.stringify(v);
@@ -101,7 +119,8 @@ class PostgresDB {
     const fieldList = fields.map(f => this.sanitizeFieldName(f)).join(', ');
 
     try {
-      await this.pool.query(
+      const executor = client || this.pool;
+      await executor.query(
         `INSERT INTO ${table} (${fieldList}) VALUES (${placeholders})`,
         values
       );
@@ -113,37 +132,37 @@ class PostgresDB {
   }
 
   // Найти один документ
-  async findOne(collection, query) {
+  async findOne(collection, query, client = null) {
     const table = this.sanitizeTableName(collection);
     const conditions = Object.keys(query).map((k, i) => `${this.sanitizeFieldName(k)} = $${i + 1}`).join(' AND ');
     const values = Object.values(query);
 
-    return this.get(`SELECT * FROM ${table} WHERE ${conditions} LIMIT 1`, values);
+    return this.get(`SELECT * FROM ${table} WHERE ${conditions} LIMIT 1`, values, client);
   }
 
   // Найти все документы
-  async find(collection, query = {}) {
+  async find(collection, query = {}, client = null) {
     const table = this.sanitizeTableName(collection);
 
     if (Object.keys(query).length === 0) {
-      return this.all(`SELECT * FROM ${table}`);
+      return this.all(`SELECT * FROM ${table}`, [], client);
     }
 
     const conditions = Object.keys(query).map((k, i) => `${this.sanitizeFieldName(k)} = $${i + 1}`).join(' AND ');
     const values = Object.values(query);
 
-    return this.all(`SELECT * FROM ${table} WHERE ${conditions}`, values);
+    return this.all(`SELECT * FROM ${table} WHERE ${conditions}`, values, client);
   }
 
   // Обновить документ
-  async updateOne(collection, filter, update) {
+  async updateOne(collection, filter, update, client = null) {
     const table = this.sanitizeTableName(collection);
     const filterKeys = Object.keys(filter);
     const filterConditions = filterKeys.map((k, i) => `${this.sanitizeFieldName(k)} = $${i + 1}`).join(' AND ');
     const filterValues = Object.values(filter);
 
     const updateKeys = Object.keys(update);
-    const setClause = updateKeys.map((k, i) => `${this.sanitizeFieldName(k)} = $${i + 1}`).join(', ');
+    const setClause = updateKeys.map((k, i) => `${this.sanitizeFieldName(k)} = $${filterKeys.length + i + 1}`).join(', ');
     const setValues = updateKeys.map(k => {
       if (typeof update[k] === 'object') return JSON.stringify(update[k]);
       if (update[k] === undefined) return null;
@@ -151,7 +170,8 @@ class PostgresDB {
     });
 
     try {
-      const result = await this.pool.query(
+      const executor = client || this.pool;
+      const result = await executor.query(
         `UPDATE ${table} SET ${setClause} WHERE ${filterConditions}`,
         [...setValues, ...filterValues]
       );
@@ -163,13 +183,14 @@ class PostgresDB {
   }
 
   // Удалить документ
-  async deleteOne(collection, query) {
+  async deleteOne(collection, query, client = null) {
     const table = this.sanitizeTableName(collection);
     const conditions = Object.keys(query).map((k, i) => `${this.sanitizeFieldName(k)} = $${i + 1}`).join(' AND ');
     const values = Object.values(query);
 
     try {
-      const result = await this.pool.query(`DELETE FROM ${table} WHERE ${conditions}`, values);
+      const executor = client || this.pool;
+      const result = await executor.query(`DELETE FROM ${table} WHERE ${conditions}`, values);
       return { deleted: result.rowCount };
     } catch (error) {
       console.error('[PostgreSQL] Delete error:', error.message);
@@ -178,18 +199,18 @@ class PostgresDB {
   }
 
   // Подсчёт документов
-  async countDocuments(collection, query = {}) {
+  async countDocuments(collection, query = {}, client = null) {
     const table = this.sanitizeTableName(collection);
 
     if (Object.keys(query).length === 0) {
-      const row = await this.get(`SELECT COUNT(*) as count FROM ${table}`);
+      const row = await this.get(`SELECT COUNT(*) as count FROM ${table}`, [], client);
       return row ? parseInt(row.count, 10) : 0;
     }
 
     const conditions = Object.keys(query).map((k, i) => `${this.sanitizeFieldName(k)} = $${i + 1}`).join(' AND ');
     const values = Object.values(query);
 
-    const row = await this.get(`SELECT COUNT(*) as count FROM ${table} WHERE ${conditions}`, values);
+    const row = await this.get(`SELECT COUNT(*) as count FROM ${table} WHERE ${conditions}`, values, client);
     return row ? parseInt(row.count, 10) : 0;
   }
 

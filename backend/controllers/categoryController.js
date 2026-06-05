@@ -1,5 +1,5 @@
 /**
- * Category Controller - SQLite версия
+ * Category Controller — поддерживает SQLite и PostgreSQL
  */
 const db = require('../config/database');
 

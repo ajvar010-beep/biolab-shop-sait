@@ -5,9 +5,9 @@ module.exports = {
   id: 2,
   name: '002_seed_categories',
 
-  up(db) {
+  async up(db) {
     // Проверяем, есть ли уже категории
-    const existing = db.countDocuments('categories');
+    const existing = await db.countDocuments('categories');
     if (existing > 0) {
       console.log('[Миграция] Категории уже существуют, пропускаем');
       return;
@@ -22,9 +22,10 @@ module.exports = {
     ];
 
     const now = new Date().toISOString();
-    categories.forEach((cat, i) => {
+    for (let i = 0; i < categories.length; i++) {
+      const cat = categories[i];
       const slug = cat.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-zа-я0-9-]/g, '');
-      db.insert('categories', {
+      await db.insert('categories', {
         _id: `cat_seed_${i + 1}`,
         name: cat.name,
         slug,
@@ -32,7 +33,7 @@ module.exports = {
         imageUrl: cat.imageUrl,
         createdAt: now
       });
-    });
+    }
 
     console.log('[Миграция] Категории созданы:', categories.length);
   }

@@ -1,9 +1,8 @@
 /**
  * SQLite Database Layer для Biolab (local/development)
- * Все методы - async для совместимости с PostgreSQL адаптером
+ * Все методы - async для совместимости с PostgreSQL адаптером.
+ * better-sqlite3 подключается лениво в init() — на проде (PostgreSQL) он не нужен.
  */
-const Database = require('better-sqlite3');
-
 class SQLiteDB {
   constructor() {
     this.db = null;
@@ -12,6 +11,16 @@ class SQLiteDB {
 
   // Инициализация - синхронная (better-sqlite3)
   init(dbPath) {
+    let Database;
+    try {
+      Database = require('better-sqlite3');
+    } catch (err) {
+      throw new Error(
+        'SQLite-режим требует пакет better-sqlite3. ' +
+        'Установите его (npm install better-sqlite3) или задайте DATABASE_URL для PostgreSQL.'
+      );
+    }
+
     this.dbPath = dbPath;
 
     this.db = new Database(dbPath);
@@ -26,10 +35,10 @@ class SQLiteDB {
     return this;
   }
 
-  // Запустить миграции (синхронно, оборачиваем в Promise для унификации)
-  runMigrations() {
+  // Запустить миграции (мигратор асинхронный — возвращаем промис)
+  async runMigrations() {
     const { run } = require('../migrations/migrator');
-    run(this);
+    return run(this);
   }
 
   // ===== Низкоуровневые примитивы (async) =====
@@ -69,15 +78,17 @@ class SQLiteDB {
 
   // ===== Обёртки =====
 
+  // SQLite использует одно соединение, поэтому клиент не нужен — совместимость API
   async beginTransaction() {
     this.db.exec('BEGIN TRANSACTION');
+    return null; // нет отдельного клиента
   }
 
-  async commit() {
+  async commit(client) {
     this.db.exec('COMMIT');
   }
 
-  async rollback() {
+  async rollback(client) {
     this.db.exec('ROLLBACK');
   }
 
@@ -197,7 +208,7 @@ class SQLiteDB {
     return name;
   }
 
-  runMigration(sql) {
+  async runMigration(sql) {
     this.db.exec(sql);
   }
 
