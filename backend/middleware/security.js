@@ -139,5 +139,6 @@ module.exports = {
   orderLimiter,
   adminLimiter,
   orderLookupLimiter,
-  checkOrigin
+  checkOrigin,
+  createRateLimiter
 };

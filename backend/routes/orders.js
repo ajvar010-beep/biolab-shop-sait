@@ -3,9 +3,10 @@ const router = express.Router();
 const orderController = require('../controllers/orderController');
 const authMiddleware = require('../middleware/auth');
 const { csrfCheck, orderLimiter, orderLookupLimiter } = require('../middleware/security');
+const { hcaptchaMiddleware } = require('../middleware/hcaptcha');
 
 // Публичные маршруты
-router.post('/', orderLimiter, orderController.createOrder);
+router.post('/', orderLimiter, hcaptchaMiddleware, orderController.createOrder);
 router.get('/code/:orderCode', orderLookupLimiter, orderController.getOrderByCode);
 router.get('/phone/:phone', orderLookupLimiter, orderController.getOrdersByPhone);
 

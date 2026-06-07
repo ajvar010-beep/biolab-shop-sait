@@ -493,10 +493,23 @@ async function submitOrder(event) {
   const customerName = (form.customerName?.value || '').trim();
   const customerPhone = (form.customerPhone?.value || '').trim();
 
+  // Собираем hCaptcha токен (из глобального callback)
+  let hcaptchaToken = '';
+  if (typeof getHcaptchaToken === 'function') {
+    hcaptchaToken = getHcaptchaToken() || '';
+  }
+
+  if (!hcaptchaToken) {
+    alert('Пожалуйста, пройдите проверку hCaptcha');
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Оформить заказ'; }
+    return;
+  }
+
   const formData = {
     customerName,
     customerPhone,
-    items: cart.map((item) => ({ productId: item.productId, quantity: item.quantity }))
+    items: cart.map((item) => ({ productId: item.productId, quantity: item.quantity })),
+    'h-captcha-response': hcaptchaToken
   };
 
   try {

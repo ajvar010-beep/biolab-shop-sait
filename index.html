@@ -29,6 +29,35 @@
         <!-- Model Viewer через jsDelivr (работает в РФ) -->
         <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.3.0/dist/model-viewer.min.js"></script>
 
+        <!-- hCaptcha — защита от ботов на форме заказа -->
+        <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+        <script>
+          // hCaptcha callbacks — глобальные, необходимы для data-callback / data-expired-callback
+          let _hcaptchaToken = null;
+          function onHcaptchaSuccess(token) {
+            _hcaptchaToken = token;
+            const btn = document.getElementById('checkoutSubmitBtn');
+            if (btn) { btn.disabled = false; btn.textContent = 'Оформить заказ'; }
+            const hint = document.getElementById('hcaptchaHint');
+            if (hint) { hint.style.display = 'none'; }
+          }
+          function onHcaptchaExpired() {
+            _hcaptchaToken = null;
+            const btn = document.getElementById('checkoutSubmitBtn');
+            if (btn) { btn.disabled = true; btn.textContent = 'Оформить заказ'; }
+            const hint = document.getElementById('hcaptchaHint');
+            if (hint) { hint.style.display = 'block'; hint.textContent = 'hCaptcha истекла. Повторите проверку.'; hint.style.color = '#e74c3c'; }
+          }
+          function onHcaptchaError() {
+            _hcaptchaToken = null;
+            const btn = document.getElementById('checkoutSubmitBtn');
+            if (btn) { btn.disabled = true; }
+            const hint = document.getElementById('hcaptchaHint');
+            if (hint) { hint.style.display = 'block'; hint.textContent = 'hCaptcha ошибка. Обновите страницу и попробуйте снова.'; hint.style.color = '#e74c3c'; }
+          }
+          function getHcaptchaToken() { return _hcaptchaToken; }
+        </script>
+
         <!-- Inter font через jsDelivr (работает в РФ) -->
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@4.5.15/400.css">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@4.5.15/600.css">
@@ -225,7 +254,17 @@
                             <input type="tel" id="customerPhone" name="customerPhone" required maxlength="32" placeholder="+7 (999) 123-45-67">
                         </div>
 
-                        <button type="submit" class="submit-btn">Оформить заказ</button>
+                        <!-- hCaptcha — защита от ботов -->
+                        <div class="form-group">
+                            <div class="h-captcha"
+                                 data-sitekey="HCAPTCHA_SITE_KEY_PLACEHOLDER"
+                                 data-callback="onHcaptchaSuccess"
+                                 data-expired-callback="onHcaptchaExpired"
+                                 data-error-callback="onHcaptchaError"></div>
+                            <p id="hcaptchaHint" style="display:none;font-size:13px;color:#e74c3c;margin-top:6px;"></p>
+                        </div>
+
+                        <button type="submit" id="checkoutSubmitBtn" class="submit-btn" disabled>Оформить заказ</button>
                     </form>
                 </div>
             </div>

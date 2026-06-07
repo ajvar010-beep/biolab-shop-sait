@@ -11,7 +11,7 @@ const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const db = require('./config/database');
 const { logError } = require('./utils/logger');
-const { csrfCheck, authLimiter, adminLimiter } = require('./middleware/security');
+const { csrfCheck, authLimiter, adminLimiter, createRateLimiter, orderLookupLimiter } = require('./middleware/security');
 const authController = require('./controllers/authController');
 
 // ===== Проверка критичных переменных =====
@@ -65,15 +65,15 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net'],
-      scriptSrc: ["'self'", 'https://cdn.jsdelivr.net'],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net', 'https://assets.hcaptcha.com'],
+      scriptSrc: ["'self'", 'https://cdn.jsdelivr.net', 'https://js.hcaptcha.com', 'https://assets.hcaptcha.com'],
       scriptSrcAttr: ["'none'"],
-      imgSrc: ["'self'", 'data:', 'https:'],
-      connectSrc: ["'self'"],
+      imgSrc: ["'self'", 'data:', 'https:', 'https://assets.hcaptcha.com'],
+      connectSrc: ["'self'", 'https://hcaptcha.com'],
       fontSrc: ["'self'", 'data:', 'https://cdn.jsdelivr.net'],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
-      frameSrc: ["'none'"],
+      frameSrc: ["'self'", 'https://newassets.hcaptcha.com', 'https://assets.hcaptcha.com'],
       frameAncestors: ["'none'"],
       baseUri: ["'self'"],
       formAction: ["'self'"]
@@ -122,30 +122,55 @@ app.use((req, res, next) => {
 app.use(cookieParser());
 
 // ===== Rate limiting =====
+// Аутентификация
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
+
+// Публичные API — rate limiting для защиты от DDoS (только GET)
+const productGetLimiter = process.env.NODE_ENV === 'test'
+  ? (req, res, next) => next()
+  : createRateLimiter(60 * 1000, 100, 'Слишком много запросов к каталогу. Попробуйте позже');
+
+const categoryGetLimiter = process.env.NODE_ENV === 'test'
+  ? (req, res, next) => next()
+  : createRateLimiter(60 * 1000, 100, 'Слишком много запросов к категориям. Попробуйте позже');
+
+const settingsGetLimiter = process.env.NODE_ENV === 'test'
+  ? (req, res, next) => next()
+  : createRateLimiter(60 * 1000, 60, 'Слишком много запросов к настройкам. Попробуйте позже');
+
+const healthLimiter = process.env.NODE_ENV === 'test'
+  ? (req, res, next) => next()
+  : createRateLimiter(60 * 1000, 60, 'Слишком много запросов. Попробуйте позже');
+
+app.use('/api/health', healthLimiter);
+
+// Заказы (GET — публичный поиск по коду, POST/PUT/DELETE — защищены adminLimiter)
+app.use('/api/orders', (req, res, next) => {
+  if (req.method === 'GET') {
+    return orderLookupLimiter(req, res, next);
+  }
+  return adminLimiter(req, res, next);
+});
+
+// Публичные GET endpoints
 app.use('/api/products', (req, res, next) => {
-  if (req.method === 'GET') return next();
+  if (req.method === 'GET') return productGetLimiter(req, res, next);
   return adminLimiter(req, res, next);
 });
 app.use('/api/categories', (req, res, next) => {
-  if (req.method === 'GET') return next();
-  return adminLimiter(req, res, next);
-});
-app.use('/api/orders', (req, res, next) => {
-  if (req.method === 'GET') return next();
+  if (req.method === 'GET') return categoryGetLimiter(req, res, next);
   return adminLimiter(req, res, next);
 });
 app.use('/api/settings', (req, res, next) => {
-  if (req.method === 'GET') return next();
+  if (req.method === 'GET') return settingsGetLimiter(req, res, next);
   return adminLimiter(req, res, next);
 });
 
 // ===== Статика =====
 const ROOT = path.resolve(__dirname, '..');
-const PUBLIC_DIR = path.join(ROOT, 'public');
 
-// Uploads
+// 1. Uploads
 const uploadsDir = path.join(ROOT, 'uploads');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 app.use('/uploads', express.static(uploadsDir, {
@@ -157,27 +182,24 @@ app.use('/uploads', express.static(uploadsDir, {
   }
 }));
 
-// Фронтенд магазина (HTML, PWA-файлы, manifest.json, sw.js) — из public/
+// 2. PWA-файлы из public/ (manifest.json, sw.js, иконки)
+const PUBLIC_DIR = path.join(ROOT, 'public');
 if (fs.existsSync(PUBLIC_DIR)) {
-  app.use(express.static(PUBLIC_DIR));
+  app.use(express.static(PUBLIC_DIR, { index: false }));
 }
 
-// Фронтенд магазина и админки — из корня репозитория, по белому списку
-// (не отдаём backend/, .env и прочие служебные файлы).
+// 3. Фронтенд-статика по mount point'ам (безопасно — не отдаём backend/, .env и т.д.)
 app.use('/assets', express.static(path.join(ROOT, 'assets')));
 app.use('/images', express.static(path.join(ROOT, 'images')));
 app.use('/admin', express.static(path.join(ROOT, 'admin')));
 
-// Корневые файлы (favicon.ico, favicon.svg, robots.txt) — ищем сначала в public/, потом в корне
-const safeFiles = ['favicon.ico', 'favicon.svg', 'robots.txt'];
-app.get(safeFiles.map((f) => `/${f}`), (req, res, next) => {
-  const file = req.path.slice(1);
-  if (!safeFiles.includes(file)) return next();
-  const publicPath = path.join(PUBLIC_DIR, file);
-  if (fs.existsSync(publicPath)) return res.sendFile(publicPath);
-  const rootPath = path.join(ROOT, file);
-  if (fs.existsSync(rootPath)) return res.sendFile(rootPath);
-  next();
+// 4. Корневые файлы
+app.use('/favicon.svg', express.static(path.join(ROOT, 'favicon.svg')));
+app.use('/robots.txt', express.static(path.join(ROOT, 'robots.txt')));
+
+// 5. Главная страница — явно из корня
+app.get('/', (req, res) => {
+  res.sendFile(path.join(ROOT, 'index.html'));
 });
 
 // ===== Routes =====
@@ -197,14 +219,9 @@ app.use('/api', (req, res) => {
   res.status(404).json({ message: 'Endpoint не найден' });
 });
 
-// SPA-fallback — на любой GET отдаём главную магазина (ищем в public/)
-app.use((req, res, next) => {
-  if (req.method !== 'GET') return next();
-  const publicIndex = path.join(PUBLIC_DIR, 'index.html');
-  if (fs.existsSync(publicIndex)) return res.sendFile(publicIndex);
-  const rootIndex = path.join(ROOT, 'index.html');
-  if (fs.existsSync(rootIndex)) return res.sendFile(rootIndex);
-  next();
+// SPA-fallback — для всех GET-запросов, не начинающихся с /api/
+app.get('*', (req, res) => {
+  res.sendFile(path.join(ROOT, 'index.html'));
 });
 
 // 404 универсальный
