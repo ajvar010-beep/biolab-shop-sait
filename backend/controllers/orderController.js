@@ -156,7 +156,7 @@ exports.createOrder = async (req, res) => {
         }
       });
     } catch (error) {
-      await db.rollback();
+      await db.rollback(tx);
       throw error;
     }
   } catch (error) {
