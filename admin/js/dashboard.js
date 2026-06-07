@@ -36,6 +36,13 @@
             document.getElementById('pendingOrders').textContent = String(orders.filter(o => o.status === 'pending').length);
             document.getElementById('completedOrders').textContent = String(orders.filter(o => o.status === 'completed').length);
 
+            // Общая выручка (выданные заказы)
+            const revenueEl = document.getElementById('totalRevenue');
+            if (revenueEl) {
+              const revenue = orders.filter(o => o.status === 'completed').reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+              revenueEl.textContent = revenue.toLocaleString('ru-RU') + ' ₽';
+            }
+
             renderRecentOrders(orders.slice(0, 5));
             renderLowStock(products.filter(p => p.stock < 5).slice(0, 10));
         } catch (error) {

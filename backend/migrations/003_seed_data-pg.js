@@ -27,7 +27,8 @@ const PRODUCTS = [
     category: 'Цветы',
     stock: 25,
     size: 'normal',
-    images: '[]'
+    imageUrl: 'https://images.unsplash.com/photo-1487527040587-8c6a67e85b64?w=400&h=300&fit=crop',
+    images: '["https://images.unsplash.com/photo-1487527040587-8c6a67e85b64?w=800&h=600&fit=crop"]'
   },
   {
     title: 'Помидор черри',
@@ -36,7 +37,8 @@ const PRODUCTS = [
     category: 'Овощи',
     stock: 40,
     size: 'normal',
-    images: '[]'
+    imageUrl: 'https://images.unsplash.com/photo-1592841200221-a3f6e03c36e6?w=400&h=300&fit=crop',
+    images: '["https://images.unsplash.com/photo-1592841200221-a3f6e03c36e6?w=800&h=600&fit=crop"]'
   },
   {
     title: 'Базилик зелёный',
@@ -45,7 +47,8 @@ const PRODUCTS = [
     category: 'Зелень',
     stock: 60,
     size: 'normal',
-    images: '[]'
+    imageUrl: 'https://images.unsplash.com/photo-1618378927878-7dc73682e8e3?w=400&h=300&fit=crop',
+    images: '["https://images.unsplash.com/photo-1618378927878-7dc73682e8e3?w=800&h=600&fit=crop"]'
   },
   {
     title: 'Рассада перца',
@@ -54,7 +57,8 @@ const PRODUCTS = [
     category: 'Рассада',
     stock: 30,
     size: 'normal',
-    images: '[]'
+    imageUrl: 'https://images.unsplash.com/photo-1568480704474-d55e47e9af03?w=400&h=300&fit=crop',
+    images: '["https://images.unsplash.com/photo-1568480704474-d55e47e9af03?w=800&h=600&fit=crop"]'
   },
   {
     title: 'Гортензия',
@@ -63,7 +67,8 @@ const PRODUCTS = [
     category: 'Кустарники',
     stock: 15,
     size: 'large',
-    images: '[]'
+    imageUrl: 'https://images.unsplash.com/photo-1468439237565-2b249928f5a0?w=400&h=300&fit=crop',
+    images: '["https://images.unsplash.com/photo-1468439237565-2b249928f5a0?w=800&h=600&fit=crop"]'
   },
   {
     title: 'Яблоня молодая',
@@ -72,7 +77,8 @@ const PRODUCTS = [
     category: 'Деревья',
     stock: 10,
     size: 'large',
-    images: '[]'
+    imageUrl: 'https://images.unsplash.com/photo-1507003213457-2ad19c50a4b2?w=400&h=300&fit=crop',
+    images: '["https://images.unsplash.com/photo-1560969028-259ab67ca4b1?w=800&h=600&fit=crop"]'
   },
   {
     title: 'Семена подсолнуха',
@@ -81,7 +87,8 @@ const PRODUCTS = [
     category: 'Семена',
     stock: 100,
     size: 'normal',
-    images: '[]'
+    imageUrl: 'https://images.unsplash.com/photo-1551687663-bc3c0de2ca5f?w=400&h=300&fit=crop',
+    images: '["https://images.unsplash.com/photo-1551687663-bc3c0de2ca5f?w=800&h=600&fit=crop"]'
   },
   {
     title: 'Рассада огурца',
@@ -90,7 +97,8 @@ const PRODUCTS = [
     category: 'Рассада',
     stock: 35,
     size: 'normal',
-    images: '[]'
+    imageUrl: 'https://images.unsplash.com/photo-1447175301003-33f4985107c4?w=400&h=300&fit=crop',
+    images: '["https://images.unsplash.com/photo-1447175301003-33f4985107c4?w=800&h=600&fit=crop"]'
   },
   {
     title: 'Ромашка',
@@ -99,7 +107,8 @@ const PRODUCTS = [
     category: 'Цветы',
     stock: 50,
     size: 'normal',
-    images: '[]'
+    imageUrl: 'https://images.unsplash.com/photo-1490751746386-2e0c4f2f502f?w=400&h=300&fit=crop',
+    images: '["https://images.unsplash.com/photo-1490751746386-2e0c4f2f502f?w=800&h=600&fit=crop"]'
   },
   {
     title: 'Укроп',
@@ -108,7 +117,8 @@ const PRODUCTS = [
     category: 'Зелень',
     stock: 70,
     size: 'normal',
-    images: '[]'
+    imageUrl: 'https://images.unsplash.com/photo-1618378927878-7dc73682e8e3?w=400&h=300&fit=crop',
+    images: '["https://images.unsplash.com/photo-1618378927878-7dc73682e8e3?w=800&h=600&fit=crop"]'
   }
 ];
 
@@ -143,7 +153,6 @@ module.exports = {
         await db.insert('products', {
           _id: makeId('prod'),
           ...prod,
-          imageUrl: '',
           modelUrl: '',
           salePrice: null,
           saleStart: null,

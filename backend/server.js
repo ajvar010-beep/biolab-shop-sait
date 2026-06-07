@@ -68,7 +68,7 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net', 'https://assets.hcaptcha.com'],
       scriptSrc: ["'self'", 'https://cdn.jsdelivr.net', 'https://js.hcaptcha.com', 'https://assets.hcaptcha.com'],
       scriptSrcAttr: ["'none'"],
-      imgSrc: ["'self'", 'data:', 'https:', 'https://assets.hcaptcha.com'],
+      imgSrc: ["'self'", 'data:', 'https:', 'https://assets.hcaptcha.com', 'https://images.unsplash.com'],
       connectSrc: ["'self'", 'https://hcaptcha.com'],
       fontSrc: ["'self'", 'data:', 'https://cdn.jsdelivr.net'],
       objectSrc: ["'none'"],

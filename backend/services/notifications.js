@@ -7,7 +7,17 @@ const https = require('https');
 // Telegram настройки
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
-const TELEGRAM_API_URL = `https://api.telegram.org/bot${BOT_TOKEN}`;
+
+/**
+ * Escape HTML-спецсимволов для Telegram parse_mode: HTML
+ * Защита от Telegram injection через пользовательский ввод
+ */
+function escapeHtml(text) {
+  return String(text || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
 
 /**
  * Отправить сообщение в Telegram
@@ -80,15 +90,15 @@ async function sendTelegramMessage(text) {
  */
 async function notifyNewOrder(order) {
   const items = Array.isArray(order.items) ? order.items : [];
-  const itemsText = items.map(i => `  • ${i.title} x${i.quantity} — ${i.price}₽`).join('\n');
+  const itemsText = items.map(i => `  • ${escapeHtml(i.title)} x${i.quantity} — ${i.price}₽`).join('\n');
 
   const message = `
 🛒 <b>Новый заказ!</b>
 
-📋 Код: <code>${order.orderCode}</code>
-👤 ${order.customerName}
-📞 ${order.customerPhone}
-${order.customerEmail ? `📧 ${order.customerEmail}` : ''}
+📋 Код: <code>${escapeHtml(order.orderCode)}</code>
+👤 ${escapeHtml(order.customerName)}
+📞 ${escapeHtml(order.customerPhone)}
+${order.customerEmail ? `📧 ${escapeHtml(order.customerEmail)}` : ''}
 💰 Итого: <b>${order.totalAmount}₽</b>
 
 <b>Товары:</b>
@@ -108,8 +118,8 @@ async function notifyOrderCompleted(order) {
   const message = `
 ✅ <b>Заказ выдан!</b>
 
-📋 Код: <code>${order.orderCode}</code>
-👤 ${order.customerName}
+📋 Код: <code>${escapeHtml(order.orderCode)}</code>
+👤 ${escapeHtml(order.customerName)}
 💰 Сумма: <b>${order.totalAmount}₽</b>
 
 ⏰ Выдан: ${new Date().toLocaleString('ru-RU')}
@@ -123,12 +133,12 @@ async function notifyOrderCompleted(order) {
  * @param {Object} order - данные заказа
  */
 async function notifyOrderCancelled(order) {
-  const reason = order.cancelReason ? `\n📝 Причина: ${order.cancelReason}` : '';
+  const reason = order.cancelReason ? `\n📝 Причина: ${escapeHtml(order.cancelReason)}` : '';
   const message = `
 ❌ <b>Заказ отменён!</b>
 
-📋 Код: <code>${order.orderCode}</code>
-👤 ${order.customerName}
+📋 Код: <code>${escapeHtml(order.orderCode)}</code>
+👤 ${escapeHtml(order.customerName)}
 💰 Сумма: ${order.totalAmount}₽${reason}
 
 ⏰ Отменён: ${new Date().toLocaleString('ru-RU')}

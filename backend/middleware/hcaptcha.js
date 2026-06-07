@@ -69,8 +69,13 @@ function verifyHcaptcha(token) {
 
 /**
  * Express middleware — проверяет hCaptcha token из body.hcaptchaToken
+ * В test-режиме или без HCAPTCHA_SECRET — пропускает без проверки
  */
 function hcaptchaMiddleware(req, res, next) {
+  // В test-режиме или без настройки — пропускаем
+  if (process.env.NODE_ENV === 'test' || !HCAPTCHA_SECRET) {
+    return next();
+  }
   const token = req.body && (req.body['h-captcha-response'] || req.body.hcaptchaToken);
 
   verifyHcaptcha(token)

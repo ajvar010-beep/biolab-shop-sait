@@ -295,19 +295,29 @@ exports.completeOrder = async (req, res) => {
       return res.status(400).json({ message: 'Заказ нельзя выдать (уже выдан, отменён или не найден)' });
     }
 
-    const now = new Date().toISOString();
-    await db.updateOne('orders', { _id: order._id }, {
-      status: 'completed',
-      completedAt: now,
-      updatedAt: now
-    });
+    // Выдача заказа — атомарная операция в транзакции
+    const tx = await db.beginTransaction();
+
+    try {
+      const now = new Date().toISOString();
+      await db.updateOne('orders', { _id: order._id }, {
+        status: 'completed',
+        completedAt: now,
+        updatedAt: now
+      }, tx);
+
+      await db.commit(tx);
+    } catch (error) {
+      await db.rollback(tx);
+      throw error;
+    }
 
     const updated = await db.findOne('orders', { _id: order._id });
     if (updated.items && typeof updated.items === 'string') {
       try { updated.items = JSON.parse(updated.items); } catch (_) { updated.items = []; }
     }
 
-      notifications.notifyOrderCompleted(updated).catch(() => {});
+    notifications.notifyOrderCompleted(updated).catch(() => {});
     res.json({ message: 'Заказ выдан', order: updated });
   } catch (error) {
     console.error('Ошибка выдачи заказа:', error.message);
