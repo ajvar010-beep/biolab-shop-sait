@@ -214,10 +214,40 @@ class PostgresDB {
     return row ? parseInt(row.count, 10) : 0;
   }
 
-  // Парсинг строки
+  // Парсинг строки — конвертирует lowercase поля PostgreSQL в camelCase
   parseRow(row) {
     if (!row) return null;
     const parsed = { ...row };
+
+    // Маппинг lowercase → camelCase для совместимости с фронтендом
+    const fieldMap = {
+      imageurl: 'imageUrl',
+      modelurl: 'modelUrl',
+      saleprice: 'salePrice',
+      salestart: 'saleStart',
+      saleend: 'saleEnd',
+      createdat: 'createdAt',
+      updatedat: 'updatedAt',
+      ordercode: 'orderCode',
+      customername: 'customerName',
+      customerphone: 'customerPhone',
+      customeremail: 'customerEmail',
+      totalprice: 'totalPrice',
+      totalamount: 'totalAmount',
+      completedat: 'completedAt',
+      cancelledat: 'cancelledAt',
+      cancelreason: 'cancelReason',
+      qrcode: 'qrCode',
+      abouttext: 'aboutText',
+      workinghours: 'workingHours',
+      tokenversion: 'tokenVersion'
+    };
+
+    for (const [lower, camel] of Object.entries(fieldMap)) {
+      if (parsed[lower] !== undefined && parsed[camel] === undefined) {
+        parsed[camel] = parsed[lower];
+      }
+    }
 
     if (parsed.images && typeof parsed.images === 'string') {
       try { parsed.images = JSON.parse(parsed.images); } catch (_) { parsed.images = []; }
