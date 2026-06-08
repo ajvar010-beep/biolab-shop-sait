@@ -100,13 +100,19 @@ function updateCartUI() {
   if (cartCount) {
     const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
     cartCount.textContent = String(totalItems);
-    cartCount.style.display = totalItems > 0 ? 'inline' : 'none';
+    cartCount.style.display = totalItems > 0 ? 'inline-flex' : 'none';
   }
 
   // Показываем пустую корзину или товары
   const isEmpty = cart.length === 0;
-  if (emptyCartState) emptyCartState.style.display = isEmpty ? 'block' : 'none';
-  if (cartItems) cartItems.style.display = isEmpty ? 'none' : 'block';
+  if (emptyCartState) {
+    emptyCartState.classList.toggle('hidden', !isEmpty);
+    emptyCartState.classList.toggle('flex', isEmpty);
+    emptyCartState.classList.toggle('flex-col', isEmpty);
+  }
+  if (cartItems) {
+    cartItems.style.display = isEmpty ? 'none' : 'block';
+  }
   if (cartTotalSection) cartTotalSection.style.display = isEmpty ? 'none' : 'block';
   if (cartActionsSection) cartActionsSection.style.display = isEmpty ? 'none' : 'flex';
 
@@ -176,16 +182,27 @@ function clearCart() {
   saveCart();
 }
 
-function showNotification(message) {
-  const notification = el('div', { className: 'notification', text: message });
-  document.body.appendChild(notification);
-  setTimeout(() => notification.classList.add('show'), 100);
-  setTimeout(() => {
-    notification.classList.remove('show');
+function showNotification(message, type = 'success') {
+  // Use toast if available, fallback to inline notification
+  const toast = document.getElementById('toast');
+  if (toast) {
+    toast.textContent = message;
+    toast.className = `toast toast-${type}`;
+    setTimeout(() => toast.classList.add('show'), 50);
     setTimeout(() => {
-      if (notification.parentNode) notification.parentNode.removeChild(notification);
-    }, 300);
-  }, 2000);
+      toast.classList.remove('show');
+    }, 2500);
+  } else {
+    const notification = el('div', { className: `notification notification-${type}`, text: message });
+    document.body.appendChild(notification);
+    setTimeout(() => notification.classList.add('show'), 100);
+    setTimeout(() => {
+      notification.classList.remove('show');
+      setTimeout(() => {
+        if (notification.parentNode) notification.parentNode.removeChild(notification);
+      }, 300);
+    }, 2000);
+  }
 }
 
 // ===== Загрузка и отображение товаров =====
