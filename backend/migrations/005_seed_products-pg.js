@@ -19,7 +19,6 @@ const PRODUCTS = [
     size: 'normal',
     imageUrl: 'https://images.unsplash.com/photo-1487527040587-8c6a67e85b64?w=400&h=300&fit=crop',
     images: '["https://images.unsplash.com/photo-1487527040587-8c6a67e85b64?w=800&h=600&fit=crop"]',
-    featured: true
   },
   {
     title: 'Помидор черри',
@@ -30,7 +29,6 @@ const PRODUCTS = [
     size: 'normal',
     imageUrl: 'https://images.unsplash.com/photo-1592841200221-a3f6e03c36e6?w=400&h=300&fit=crop',
     images: '["https://images.unsplash.com/photo-1592841200221-a3f6e03c36e6?w=800&h=600&fit=crop"]',
-    featured: false
   },
   {
     title: 'Базилик зелёный',
@@ -41,7 +39,6 @@ const PRODUCTS = [
     size: 'normal',
     imageUrl: 'https://images.unsplash.com/photo-1618378927878-7dc73682e8e3?w=400&h=300&fit=crop',
     images: '["https://images.unsplash.com/photo-1618378927878-7dc73682e8e3?w=800&h=600&fit=crop"]',
-    featured: true
   },
   {
     title: 'Рассада перца',
@@ -52,7 +49,6 @@ const PRODUCTS = [
     size: 'normal',
     imageUrl: 'https://images.unsplash.com/photo-1568480704474-d55e47e9af03?w=400&h=300&fit=crop',
     images: '["https://images.unsplash.com/photo-1568480704474-d55e47e9af03?w=800&h=600&fit=crop"]',
-    featured: false
   },
   {
     title: 'Гортензия',
@@ -63,7 +59,6 @@ const PRODUCTS = [
     size: 'large',
     imageUrl: 'https://images.unsplash.com/photo-1468439237565-2b249928f5a0?w=400&h=300&fit=crop',
     images: '["https://images.unsplash.com/photo-1468439237565-2b249928f5a0?w=800&h=600&fit=crop"]',
-    featured: true
   },
   {
     title: 'Яблоня молодая',
@@ -74,7 +69,6 @@ const PRODUCTS = [
     size: 'large',
     imageUrl: 'https://images.unsplash.com/photo-1507003213457-2ad19c50a4b2?w=400&h=300&fit=crop',
     images: '["https://images.unsplash.com/photo-1560969028-259ab67ca4b1?w=800&h=600&fit=crop"]',
-    featured: false
   },
   {
     title: 'Семена подсолнуха',
@@ -85,7 +79,6 @@ const PRODUCTS = [
     size: 'normal',
     imageUrl: 'https://images.unsplash.com/photo-1551687663-bc3c0de2ca5f?w=400&h=300&fit=crop',
     images: '["https://images.unsplash.com/photo-1551687663-bc3c0de2ca5f?w=800&h=600&fit=crop"]',
-    featured: false
   },
   {
     title: 'Рассада огурца',
@@ -96,7 +89,6 @@ const PRODUCTS = [
     size: 'normal',
     imageUrl: 'https://images.unsplash.com/photo-1447175301003-33f4985107c4?w=400&h=300&fit=crop',
     images: '["https://images.unsplash.com/photo-1447175301003-33f4985107c4?w=800&h=600&fit=crop"]',
-    featured: false
   },
   {
     title: 'Ромашка',
@@ -107,7 +99,6 @@ const PRODUCTS = [
     size: 'normal',
     imageUrl: 'https://images.unsplash.com/photo-1490751746386-2e0c4f2f502f?w=400&h=300&fit=crop',
     images: '["https://images.unsplash.com/photo-1490751746386-2e0c4f2f502f?w=800&h=600&fit=crop"]',
-    featured: false
   },
   {
     title: 'Укроп',
@@ -118,7 +109,6 @@ const PRODUCTS = [
     size: 'normal',
     imageUrl: 'https://images.unsplash.com/photo-1618378927878-7dc73682e8e3?w=400&h=300&fit=crop',
     images: '["https://images.unsplash.com/photo-1618378927878-7dc73682e8e3?w=800&h=600&fit=crop"]',
-    featured: false
   }
 ];
 
