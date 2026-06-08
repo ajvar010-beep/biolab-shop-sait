@@ -1,42 +1,16 @@
 /**
- * SQLite миграция 003: Seed данные (категории и тестовые товары)
- * Idempotent — можно перезапускать безопасно.
+ * PostgreSQL миграция 004: Seed товары
+ * Idempotent — добавляет только отсутствующие товары.
+ * Отдельная миграция для надёжности (если 003 упала на товарах).
  */
 
 module.exports = {
-  id: 3,
-  name: '003_seed_data',
+  id: 4,
+  name: '004_seed_products-pg',
 
   async up(db) {
-    let categoriesCount = 0;
-    let productsCount = 0;
+    let added = 0;
 
-    // ─── Категории (idempotent по name) ───
-    const CATEGORIES = [
-      { _id: 'cat_flowers', name: 'Цветы', slug: 'flowers', description: 'Комнатные и уличные цветы для вашего дома' },
-      { _id: 'cat_vegetables', name: 'Овощи', slug: 'vegetables', description: 'Свежие овощные культуры' },
-      { _id: 'cat_herbs', name: 'Зелень', slug: 'herbs', description: 'Ароматные травы и зелень' },
-      { _id: 'cat_seedlings', name: 'Рассада', slug: 'seedlings', description: 'Готовая рассада для посадки' },
-      { _id: 'cat_houseplants', name: 'Кустарники', slug: 'houseplants', description: 'Декоративные кустарники' },
-      { _id: 'cat_trees', name: 'Деревья', slug: 'trees', description: 'Молодые деревья и саженцы' },
-      { _id: 'cat_seeds', name: 'Семена', slug: 'seeds', description: 'Семена для самостоятельного выращивания' }
-    ];
-
-    for (const cat of CATEGORIES) {
-      const exists = await db.findOne('categories', { name: cat.name });
-      if (!exists) {
-        await db.insert('categories', {
-          ...cat,
-          createdAt: new Date().toISOString()
-        });
-        categoriesCount++;
-        console.log(`[Seed 003] Категория добавлена: ${cat.name}`);
-      } else {
-        console.log(`[Seed 003] Категория уже есть: ${cat.name}`);
-      }
-    }
-
-    // ─── Товары (idempotent по title) ───
     const PRODUCTS = [
       {
         title: 'Фиалка фиолетовая',
@@ -111,26 +85,26 @@ module.exports = {
     ];
 
     for (const prod of PRODUCTS) {
-      const exists = await db.findOne('products', { title: prod.title });
-      if (!exists) {
-        const now = new Date().toISOString();
-        await db.insert('products', {
-          _id: 'prod_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10),
-          ...prod,
-          modelUrl: '',
-          salePrice: null,
-          saleStart: null,
-          saleEnd: null,
-          createdAt: now,
-          updatedAt: now
-        });
-        productsCount++;
-        console.log(`[Seed 003] Товар добавлен: ${prod.title}`);
-      } else {
-        console.log(`[Seed 003] Товар уже есть: ${prod.title}`);
+      try {
+        const exists = await db.get('SELECT * FROM products WHERE title = $1 LIMIT 1', [prod.title]);
+        if (!exists) {
+          const now = new Date().toISOString();
+          await db.run(
+            `INSERT INTO products (_id, title, description, price, category, stock, size, imageUrl, images, modelUrl, salePrice, saleStart, saleEnd, createdAt, updatedAt)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+            [`prod_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`, prod.title, prod.description, prod.price, prod.category, prod.stock, prod.size, prod.imageUrl, prod.images, '', null, null, null, now, now]
+          );
+          added++;
+          console.log(`[Seed 004] Товар добавлен: ${prod.title}`);
+        } else {
+          console.log(`[Seed 004] Товар уже есть: ${prod.title}`);
+        }
+      } catch (err) {
+        console.error(`[Seed 004] Ошибка добавления "${prod.title}": ${err.message}`);
+        // Не прерываем миграцию — продолжаем с другими товарами
       }
     }
 
-    console.log(`[Seed 003] Готово. Категорий: ${categoriesCount}, товаров: ${productsCount}`);
+    console.log(`[Seed 004] Готово. Добавлено товаров: ${added}`);
   }
 };
