@@ -436,13 +436,15 @@ function renderProducts(products) {
 function openCart() {
   const modal = document.getElementById('cartModal');
   if (!modal) return;
-  modal.style.display = 'flex';
+  modal.classList.add('active');
+  document.body.style.overflow = 'hidden';
   updateCartUI();
 }
 
 function closeCart() {
   const modal = document.getElementById('cartModal');
-  if (modal) modal.style.display = 'none';
+  if (modal) modal.classList.remove('active');
+  document.body.style.overflow = '';
 }
 
 function openCheckout() {
@@ -472,12 +474,14 @@ function openCheckout() {
   });
 
   if (orderTotal) orderTotal.textContent = `${total} ₽`;
-  modal.style.display = 'flex';
+  modal.classList.add('active');
+  document.body.style.overflow = 'hidden';
 }
 
 function closeCheckout() {
   const modal = document.getElementById('checkoutModal');
-  if (modal) modal.style.display = 'none';
+  if (modal) modal.classList.remove('active');
+  document.body.style.overflow = '';
   const form = document.getElementById('checkoutForm');
   if (form) form.reset();
 }
@@ -554,12 +558,14 @@ function showOrderSuccess(order) {
     qrContainer.style.display = 'none';
   }
 
-  modal.style.display = 'flex';
+  modal.classList.add('active');
+  document.body.style.overflow = 'hidden';
 }
 
 function closeSuccessModal() {
   const modal = document.getElementById('successModal');
-  if (modal) modal.style.display = 'none';
+  if (modal) modal.classList.remove('active');
+  document.body.style.overflow = '';
 }
 
 function showError(message) {
@@ -587,13 +593,13 @@ function openProductModal(productIndex) {
   if (!product) return;
 
   renderProductModal(product);
-  modal.classList.add('open');
+  modal.classList.add('active');
   document.body.style.overflow = 'hidden';
 }
 
 function closeProductModal() {
   const modal = document.getElementById('productModal');
-  if (modal) modal.classList.remove('open');
+  if (modal) modal.classList.remove('active');
   document.body.style.overflow = '';
 }
 
@@ -931,16 +937,17 @@ function setupHandlers() {
   const checkoutForm = document.getElementById('checkoutForm');
   if (checkoutForm) checkoutForm.addEventListener('submit', submitOrder);
 
-  // Закрытие модалок по клику вне их
+  // Закрытие модалок по клику на backdrop (элемент с классом backdrop-blur-custom внутри modal)
   window.addEventListener('click', (event) => {
-    const cartModal = document.getElementById('cartModal');
-    const checkoutModal = document.getElementById('checkoutModal');
-    const successModal = document.getElementById('successModal');
-    const productModal = document.getElementById('productModal');
-    if (event.target === cartModal) closeCart();
-    if (event.target === checkoutModal) closeCheckout();
-    if (event.target === successModal) closeSuccessModal();
-    if (event.target === productModal) closeProductModal();
+    const isBackdrop = event.target.classList && event.target.classList.contains('backdrop-blur-custom');
+    if (!isBackdrop) return;
+    const modal = event.target.closest('.modal, .product-modal');
+    if (!modal) return;
+    const id = modal.id;
+    if (id === 'cartModal') closeCart();
+    else if (id === 'checkoutModal') closeCheckout();
+    else if (id === 'successModal') closeSuccessModal();
+    else if (id === 'productModal') closeProductModal();
   });
 
   // Esc — закрыть текущую модалку
@@ -952,7 +959,7 @@ function setupHandlers() {
   // Стрелки для навигации по товарам
   document.addEventListener('keydown', (event) => {
     const productModal = document.getElementById('productModal');
-    if (!productModal.classList.contains('open')) return;
+    if (!productModal.classList.contains('active')) return;
     if (event.key === 'ArrowLeft') navigateProduct(-1);
     if (event.key === 'ArrowRight') navigateProduct(1);
   });
