@@ -1,335 +1,708 @@
-<!DOCTYPE HTML>
-<html>
-	<head>
-		<title>Биолаборатория — Магазин растений для школы</title>
-		<meta name="description" content="Интернет-магазин растений для школьной биолаборатории. Заказывайте растения, получайте по QR-коду в теплице." />
-		<meta name="keywords" content="биолаборатория, растения, школа, магазин растений, теплица, школьный проект, саженцы, комнатные растения" />
-		<meta name="robots" content="index, follow" />
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+    <title>Биолаборатория — Магазин растений</title>
+    <meta name="description" content="Интернет-магазин растений для школьной биолаборатории. Заказывайте растения, получайте по QR-коду в теплице." />
+    <meta name="keywords" content="биолаборатория, растения, школа, магазин растений, теплица, школьный проект" />
+    <meta name="robots" content="index, follow" />
 
-		<!-- Open Graph -->
-		<meta property="og:title" content="Биолаборатория — Магазин растений для школы" />
-		<meta property="og:description" content="Интернет-магазин растений для школьной биолаборатории. Заказывайте саженцы и получайте по QR-коду." />
-		<meta property="og:type" content="website" />
-		<meta property="og:url" content="https://biolab.local" />
-		<meta property="og:image" content="https://biolab.local/images/og-image.png" />
-		<meta property="og:site_name" content="Биолаборатория" />
+    <!-- Open Graph -->
+    <meta property="og:title" content="Биолаборатория — Магазин растений" />
+    <meta property="og:description" content="Интернет-магазин растений для школьной биолаборатории." />
+    <meta property="og:type" content="website" />
 
-		<!-- Favicon SVG -->
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-		
-        <link rel="stylesheet" href="assets/css/main.css" />
-        <link rel="stylesheet" href="assets/css/theme.css" />
-        <link rel="stylesheet" href="assets/css/shop.css" />
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.css" />
-		<noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'bio': {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            300: '#86efac',
+                            400: '#4ade80',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                            950: '#052e16',
+                        },
+                        'earth': {
+                            50: '#faf8f5',
+                            100: '#f0ebe3',
+                            200: '#e0d5c5',
+                            300: '#c9b8a3',
+                            400: '#b09a7e',
+                            500: '#9a8060',
+                            600: '#856a48',
+                            700: '#6d5639',
+                            800: '#5a4730',
+                            900: '#4a3b2a',
+                        }
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
 
-        <!-- Model Viewer через jsDelivr (работает в РФ) -->
-        <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.3.0/dist/model-viewer.min.js"></script>
+    <!-- Inter font -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@4.5.15/400.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@4.5.15/500.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@4.5.15/600.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@4.5.15/700.css">
 
-        <!-- hCaptcha — защита от ботов на форме заказа -->
-        <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
-        <script>
-          // hCaptcha callbacks — глобальные, необходимы для data-callback / data-expired-callback
-          let _hcaptchaToken = null;
-          function onHcaptchaSuccess(token) {
+    <!-- Model Viewer -->
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.3.0/dist/model-viewer.min.js"></script>
+
+    <!-- hCaptcha -->
+    <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+
+    <!-- hCaptcha callbacks -->
+    <script>
+        let _hcaptchaToken = null;
+        function onHcaptchaSuccess(token) {
             _hcaptchaToken = token;
             const btn = document.getElementById('checkoutSubmitBtn');
             if (btn) { btn.disabled = false; btn.textContent = 'Оформить заказ'; }
             const hint = document.getElementById('hcaptchaHint');
             if (hint) { hint.style.display = 'none'; }
-          }
-          function onHcaptchaExpired() {
+        }
+        function onHcaptchaExpired() {
             _hcaptchaToken = null;
             const btn = document.getElementById('checkoutSubmitBtn');
             if (btn) { btn.disabled = true; btn.textContent = 'Оформить заказ'; }
             const hint = document.getElementById('hcaptchaHint');
-            if (hint) { hint.style.display = 'block'; hint.textContent = 'hCaptcha истекла. Повторите проверку.'; hint.style.color = '#e74c3c'; }
-          }
-          function onHcaptchaError() {
+            if (hint) { hint.style.display = 'block'; hint.textContent = 'Проверка истекла. Повторите.'; }
+        }
+        function onHcaptchaError() {
             _hcaptchaToken = null;
             const btn = document.getElementById('checkoutSubmitBtn');
             if (btn) { btn.disabled = true; }
             const hint = document.getElementById('hcaptchaHint');
-            if (hint) { hint.style.display = 'block'; hint.textContent = 'hCaptcha ошибка. Обновите страницу и попробуйте снова.'; hint.style.color = '#e74c3c'; }
-          }
-          function getHcaptchaToken() { return _hcaptchaToken; }
-        </script>
+            if (hint) { hint.style.display = 'block'; hint.textContent = 'Ошибка. Обновите страницу.'; }
+        }
+        function getHcaptchaToken() { return _hcaptchaToken; }
+    </script>
 
-        <!-- Inter font через jsDelivr (работает в РФ) -->
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@4.5.15/400.css">
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@4.5.15/600.css">
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@4.5.15/800.css">
-	<script>document.getElementById("canonical").href = window.location.origin + "/";</script>
-	</head>
-	<body class="is-preload">
-			<div id="wrapper">
-					<header id="header">
-						<div class="inner">
-								<a href="index.html" class="logo">
-									<span class="symbol"><img src="images/logo.svg" alt="" /></span><span class="title">Биолаборатория</span>
-								</a>
-								<nav>
-									<ul>
-										<li><a href="#menu">Menu</a></li>
-									</ul>
-								</nav>
-						</div>
-					</header>
+    <style>
+        /* ===== Custom CSS Variables ===== */
+        :root {
+            --bio-green: #22c55e;
+            --bio-dark: #166534;
+            --bio-light: #dcfce7;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        }
 
-					<nav id="menu">
-						<h2>Меню</h2>
-						<ul>
-							<li><a href="index.html">Главная</a></li>
-							<li><a href="#footer">Контакты</a></li>
-						</ul>
-                        <br>
-                        
-                        <h2>Размер текста</h2>
-                        <ul>
-                            <li><a href="#" data-fontsize-set="small">А- Мелкий</a></li>
-                            <li><a href="#" data-fontsize-set="normal">А Нормальный</a></li>
-                            <li><a href="#" data-fontsize-set="large">А+ Крупный</a></li>
-                        </ul>
-                        <br>
+        /* ===== Smooth transitions ===== */
+        * { scroll-behavior: smooth; }
 
-                        <h2>Настройки темы</h2>
-                        <ul>
-                            <li><a href="#" data-theme-set="dark">⚫ Тёмная (Базовая)</a></li>
-                            <li><a href="#" data-theme-set="light">⚪ Светлая</a></li>
-                        </ul>
-					</nav>
+        /* ===== Modal animations ===== */
+        .modal {
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal:not(.active) {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+        .modal.active {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+        .modal-content {
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+        }
+        .modal:not(.active) .modal-content {
+            transform: scale(0.95) translateY(10px);
+            opacity: 0;
+        }
+        .modal.active .modal-content {
+            transform: scale(1) translateY(0);
+            opacity: 1;
+        }
 
-					<div id="main">
-						<div class="inner">
-							<header>
-								<h1>Добро пожаловать в проектную<br />
-								биолабораторию нашей школы.</h1>
-								<p>Здесь мы публикуем результаты наших экспериментов, отчеты о выращивании растений в теплице и исследовательские проекты по биологии. Следите за обновлениями!</p>
-							</header>
+        /* ===== Product card hover ===== */
+        .product-card {
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+        }
+        .product-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-xl);
+        }
 
-                            <!-- ФИЛЬТРЫ И ПОИСК -->
-                            <div class="shop-controls">
-                                <div class="category-filters" id="categoryFilters">
-                                    <button class="category-btn active" data-category="all">Все</button>
-                                </div>
-                                <div class="search-cart-row">
-                                    <div class="search-wrapper">
-                                        <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                            <circle cx="11" cy="11" r="8"></circle>
-                                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                                        </svg>
-                                        <input type="text" id="searchInput" placeholder="Поиск..." autocomplete="off" />
-                                    </div>
+        /* ===== Button press effect ===== */
+        .btn-press:active {
+            transform: scale(0.97);
+        }
 
-                                    <button class="cart-btn" data-action="open-cart">
-                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <circle cx="9" cy="21" r="1"></circle>
-                                            <circle cx="20" cy="21" r="1"></circle>
-                                            <path d="m1 1 4 4 2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-                                        </svg>
-                                        <span>Корзина</span>
-                                        <span id="cartCount" class="cart-count">0</span>
-                                    </button>
-                                </div>
-                            </div>
-                            <p class="search-empty-msg" id="searchEmptyMsg">Ничего не найдено по вашему запросу.</p>
-                            
-                            <section class="tiles"></section>
-						</div>
-					</div>
+        /* ===== Category pill ===== */
+        .category-btn {
+            transition: all 0.2s ease;
+        }
+        .category-btn:hover {
+            transform: translateY(-1px);
+        }
 
-				<footer id="footer">
-					<div class="inner">
-                        <div class="footer-improved">
-                            <section id="aboutSection" class="footer-about">
-                                <h2>О нас</h2>
-                                <p id="aboutText">Школьная биолаборатория. Выращиваем растения в собственной теплице, проводим исследовательские проекты и продаём саженцы по доступным ценам.</p>
-                                <div class="footer-schedule" id="footerSchedule" style="display: none;">
-                                    <div id="scheduleContent"></div>
-                                </div>
-                            </section>
-                            <section class="footer-contacts">
-                                <h2>Контакты</h2>
-                                <ul id="contactsList" class="contacts-list">
-                                    <li id="contactEmail" style="display:none;">
-                                        <span class="contact-icon" aria-hidden="true">✉️</span>
-                                        <a id="emailLink" href="#"></a>
-                                    </li>
-                                    <li id="contactPhone" style="display:none;">
-                                        <span class="contact-icon" aria-hidden="true">📞</span>
-                                        <a id="phoneLink" href="#"></a>
-                                    </li>
-                                    <li id="contactAddress" style="display:none;">
-                                        <span class="contact-icon" aria-hidden="true">📍</span>
-                                        <span id="addressText"></span>
-                                    </li>
-                                    <li id="contactHours" style="display:none;">
-                                        <span class="contact-icon" aria-hidden="true">🕐</span>
-                                        <span id="hoursText"></span>
-                                    </li>
-                                </ul>
-                            </section>
-                            <section id="socialsSection" class="footer-socials" style="display:none;">
-                                <h2>Мы в соцсетях</h2>
-                                <ul id="socialsList" class="socials-list"></ul>
-                            </section>
-                        </div>
-					</div>
-				</footer>
-			</div>
+        /* ===== Cart badge bounce ===== */
+        @keyframes badge-bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+        }
+        .cart-count.bounce {
+            animation: badge-bounce 0.3s ease;
+        }
 
-			<script src="assets/js/main.js"></script>
-            
-            <script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.umd.js"></script>
+        /* ===== Skeleton loading ===== */
+        @keyframes skeleton-pulse {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 0.8; }
+        }
+        .skeleton {
+            background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+            background-size: 200% 100%;
+            animation: skeleton-pulse 1.5s ease-in-out infinite;
+        }
 
-            <script src="assets/js/theme.js"></script>
-            <script src="assets/js/site-settings.js"></script>
+        /* ===== Scrollbar ===== */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-            <!-- Модальное окно корзины -->
-            <div id="cartModal" class="modal">
-                <div class="modal-content">
-                    <span class="modal-close" data-action="close-cart">&times;</span>
-                    <h2>Корзина</h2>
-                    <div id="cartItems" class="cart-items">
-                        <!-- Товары корзины будут добавлены через JS -->
+        /* ===== Focus styles ===== */
+        button:focus-visible, input:focus-visible, a:focus-visible {
+            outline: 2px solid var(--bio-green);
+            outline-offset: 2px;
+        }
+
+        /* ===== Product modal ===== */
+        .product-modal {
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .product-modal:not(.active) {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+        .product-modal.active {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+
+        /* ===== Backdrop blur ===== */
+        .backdrop-blur-custom {
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        /* ===== Tiles grid (compatible with shop.js) ===== */
+        .tiles {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        /* ===== Stock badge ===== */
+        .stock-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 600;
+            z-index: 2;
+        }
+        .stock-badge.in-stock {
+            background: rgba(34, 197, 94, 0.9);
+            color: white;
+        }
+        .stock-badge.out-of-stock {
+            background: rgba(239, 68, 68, 0.9);
+            color: white;
+        }
+
+        /* ===== Price badge ===== */
+        .price-badge {
+            position: absolute;
+            bottom: 12px;
+            left: 12px;
+            padding: 6px 14px;
+            border-radius: 9999px;
+            font-size: 18px;
+            font-weight: 700;
+            background: rgba(255, 255, 255, 0.95);
+            color: #166534;
+            z-index: 2;
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* ===== Add to cart button ===== */
+        .add-to-cart-btn {
+            transition: all 0.2s ease;
+        }
+        .add-to-cart-btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        /* ===== Image overlay ===== */
+        .image-overlay {
+            background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.2) 40%, transparent 100%);
+        }
+
+        /* ===== Empty state ===== */
+        .empty-state-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1rem;
+            opacity: 0.3;
+        }
+
+        /* ===== Toast notification ===== */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-weight: 500;
+            font-size: 14px;
+            z-index: 9999;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        .toast-success {
+            background: #166534;
+            color: white;
+        }
+        .toast-error {
+            background: #dc2626;
+            color: white;
+        }
+
+        /* ===== Responsive adjustments ===== */
+        @media (max-width: 640px) {
+            .tiles {
+                grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+                gap: 1rem;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .tiles {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans antialiased">
+
+    <!-- ===== HEADER ===== -->
+    <header id="header" class="sticky top-0 z-40 bg-white/80 backdrop-blur-custom border-b border-gray-100 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo -->
+                <a href="index.html" class="flex items-center gap-3 group">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-bio-500 to-bio-700 flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/>
+                        </svg>
                     </div>
-                    <div class="empty-cart-state" id="emptyCartState" style="display: none;">
-                        <div class="empty-icon">
-                            <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <circle cx="35" cy="70" r="6" fill="#2ed573" opacity="0.5"/>
-                                <circle cx="65" cy="70" r="6" fill="#2ed573" opacity="0.5"/>
-                                <path d="M20 25 L25 25 L30 65 L70 65 L75 25 L80 25" stroke="#2ed573" stroke-width="3" fill="none" opacity="0.3"/>
-                                <path d="M10 10 L90 10 L85 65 L15 65 Z" stroke="#2ed573" stroke-width="3" fill="none" opacity="0.5"/>
-                                <path d="M30 30 Q50 10 70 30" stroke="#2ed573" stroke-width="2" fill="none" opacity="0.3"/>
-                                <circle cx="50" cy="50" r="15" fill="none" stroke="#2ed573" stroke-width="2" opacity="0.3"/>
-                                <text x="50" y="55" text-anchor="middle" fill="#2ed573" font-size="14" opacity="0.5">+</text>
-                            </svg>
-                        </div>
-                        <h3>Корзина пуста</h3>
-                        <p>Добавьте растения из нашего каталога</p>
-                        <button class="browse-btn" data-action="close-cart">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M12 19V5M5 12l7-7 7 7"/>
-                            </svg>
-                            Перейти к растениям
+                    <div class="hidden sm:block">
+                        <span class="text-lg font-bold text-gray-900">Биолаборатория</span>
+                        <span class="block text-xs text-bio-600 font-medium -mt-0.5">Школьный проект</span>
+                    </div>
+                </a>
+
+                <!-- Nav -->
+                <nav class="flex items-center gap-2">
+                    <a href="#footer" class="hidden sm:flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 hover:text-bio-700 rounded-lg hover:bg-bio-50 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        </svg>
+                        Контакты
+                    </a>
+
+                    <!-- Cart button -->
+                    <button data-action="open-cart" class="btn-press relative flex items-center gap-2 px-4 py-2.5 bg-bio-600 hover:bg-bio-700 text-white rounded-xl font-medium text-sm shadow-md hover:shadow-lg transition-all">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <circle cx="9" cy="21" r="1"/>
+                            <circle cx="20" cy="21" r="1"/>
+                            <path d="m1 1 4 4 2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                        </svg>
+                        <span class="hidden sm:inline">Корзина</span>
+                        <span id="cartCount" class="cart-count absolute -top-1.5 -right-1.5 w-5 h-5 flex items-center justify-center bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px]">0</span>
+                    </button>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- ===== HERO SECTION ===== -->
+    <section class="relative bg-gradient-to-br from-bio-700 via-bio-600 to-bio-500 text-white overflow-hidden">
+        <!-- Decorative elements -->
+        <div class="absolute inset-0 opacity-10">
+            <div class="absolute top-10 left-10 w-32 h-32 rounded-full bg-white/20 blur-2xl"></div>
+            <div class="absolute bottom-10 right-10 w-48 h-48 rounded-full bg-white/15 blur-3xl"></div>
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full bg-white/10 blur-3xl"></div>
+        </div>
+
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 lg:py-24">
+            <div class="max-w-2xl">
+                <div class="inline-flex items-center gap-2 px-3 py-1 bg-white/15 rounded-full text-sm font-medium mb-6 backdrop-blur-sm">
+                    <span class="w-2 h-2 bg-bio-300 rounded-full animate-pulse"></span>
+                    Школьный проект 2025–2026
+                </div>
+                <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight mb-4">
+                    Добро пожаловать в<br>
+                    <span class="text-bio-200">биолабораторию</span>
+                </h1>
+                <p class="text-lg sm:text-xl text-bio-100 leading-relaxed mb-8 max-w-lg">
+                    Выращиваем растения в собственной теплице, проводим исследования и делимся результатами. Закажите саженцы прямо сейчас!
+                </p>
+                <div class="flex flex-wrap gap-3">
+                    <a href="#products" class="btn-press inline-flex items-center gap-2 px-6 py-3 bg-white text-bio-700 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+                        </svg>
+                        Смотреть каталог
+                    </a>
+                    <a href="#footer" class="btn-press inline-flex items-center gap-2 px-6 py-3 bg-white/15 text-white rounded-xl font-semibold backdrop-blur-sm hover:bg-white/25 transition-all">
+                        О проекте
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Wave divider -->
+        <div class="absolute bottom-0 left-0 right-0">
+            <svg viewBox="0 0 1440 60" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-auto">
+                <path d="M0 60V30C240 0 480 0 720 30C960 60 1200 60 1440 30V60H0Z" fill="#f9fafb"/>
+            </svg>
+        </div>
+    </section>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <main id="products" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+
+        <!-- ===== SEARCH & FILTERS ===== -->
+        <div class="mb-8 space-y-4">
+            <!-- Search bar -->
+            <div class="relative max-w-md">
+                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <circle cx="11" cy="11" r="8"/>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                </div>
+                <input type="text" id="searchInput" placeholder="Поиск растений..." autocomplete="off"
+                    class="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-bio-500/30 focus:border-bio-500 shadow-sm transition-all">
+            </div>
+
+            <!-- Category filters -->
+            <div class="category-filters flex flex-wrap gap-2" id="categoryFilters">
+                <button class="category-btn active btn-press px-4 py-2 rounded-full text-sm font-medium bg-bio-600 text-white shadow-sm" data-category="all">
+                    Все
+                </button>
+            </div>
+
+            <!-- Search empty message -->
+            <p class="search-empty-msg hidden text-sm text-gray-500 py-4" id="searchEmptyMsg">
+                Ничего не найдено по вашему запросу.
+            </p>
+        </div>
+
+        <!-- ===== PRODUCTS GRID ===== -->
+        <section class="tiles"></section>
+
+    </main>
+
+    <!-- ===== FOOTER ===== -->
+    <footer id="footer" class="bg-gray-900 text-gray-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
+                <!-- About -->
+                <div id="aboutSection">
+                    <h3 class="text-lg font-semibold text-white mb-4">О проекте</h3>
+                    <p id="aboutText" class="text-gray-400 leading-relaxed">
+                        Школьная биолаборатория. Выращиваем растения в собственной теплице, проводим исследовательские проекты и продаём саженцы по доступным ценам.
+                    </p>
+                    <div class="footer-schedule mt-4" id="footerSchedule" style="display: none;">
+                        <div id="scheduleContent"></div>
+                    </div>
+                </div>
+
+                <!-- Contacts -->
+                <div>
+                    <h3 class="text-lg font-semibold text-white mb-4">Контакты</h3>
+                    <ul id="contactsList" class="space-y-3">
+                        <li id="contactEmail" style="display:none;" class="flex items-center gap-3">
+                            <span class="text-bio-400">✉️</span>
+                            <a id="emailLink" href="#" class="hover:text-bio-400 transition-colors"></a>
+                        </li>
+                        <li id="contactPhone" style="display:none;" class="flex items-center gap-3">
+                            <span class="text-bio-400">📞</span>
+                            <a id="phoneLink" href="#" class="hover:text-bio-400 transition-colors"></a>
+                        </li>
+                        <li id="contactAddress" style="display:none;" class="flex items-center gap-3">
+                            <span class="text-bio-400">📍</span>
+                            <span id="addressText"></span>
+                        </li>
+                        <li id="contactHours" style="display:none;" class="flex items-center gap-3">
+                            <span class="text-bio-400">🕐</span>
+                            <span id="hoursText"></span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Socials -->
+                <div id="socialsSection" style="display:none;">
+                    <h3 class="text-lg font-semibold text-white mb-4">Мы в соцсетях</h3>
+                    <ul id="socialsList" class="space-y-2"></ul>
+                </div>
+            </div>
+
+            <div class="mt-10 pt-8 border-t border-gray-800 text-center text-sm text-gray-500">
+                <p>© 2025–2026 Биолаборатория. Школьный проект.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ===== CART MODAL ===== -->
+    <div id="cartModal" class="modal fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-custom" data-action="close-cart"></div>
+        <div class="modal-content relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col">
+            <!-- Header -->
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                <h2 class="text-xl font-bold text-gray-900">Корзина</h2>
+                <button data-action="close-cart" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Cart items -->
+            <div id="cartItems" class="cart-items flex-1 overflow-y-auto p-6 space-y-3">
+                <!-- Items added via JS -->
+            </div>
+
+            <!-- Empty state -->
+            <div id="emptyCartState" class="hidden flex-col items-center justify-center py-12 px-6 text-center">
+                <div class="empty-state-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="w-full h-full text-gray-300">
+                        <circle cx="9" cy="21" r="1"/>
+                        <circle cx="20" cy="21" r="1"/>
+                        <path d="m1 1 4 4 2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-700 mb-1">Корзина пуста</h3>
+                <p class="text-sm text-gray-500 mb-4">Добавьте растения из нашего каталога</p>
+                <button data-action="close-cart" class="btn-press inline-flex items-center gap-2 px-5 py-2.5 bg-bio-600 text-white rounded-xl font-medium text-sm hover:bg-bio-700 transition-colors">
+                    Перейти к каталогу
+                </button>
+            </div>
+
+            <!-- Footer -->
+            <div class="px-6 py-4 border-t border-gray-100 bg-gray-50">
+                <div class="flex items-center justify-between mb-4">
+                    <span class="text-gray-600 font-medium">Итого:</span>
+                    <span id="cartTotal" class="text-2xl font-bold text-bio-700">0 ₽</span>
+                </div>
+                <div id="cartActionsSection" class="flex gap-3">
+                    <button data-action="clear-cart" class="btn-press flex-1 px-4 py-2.5 border border-gray-200 text-gray-600 rounded-xl font-medium text-sm hover:bg-gray-100 transition-colors">
+                        Очистить
+                    </button>
+                    <button id="checkoutBtn" data-action="open-checkout" class="btn-press flex-1 px-4 py-2.5 bg-bio-600 text-white rounded-xl font-medium text-sm hover:bg-bio-700 shadow-md transition-all">
+                        Оформить заказ
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== CHECKOUT MODAL ===== -->
+    <div id="checkoutModal" class="modal fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-custom" data-action="close-checkout"></div>
+        <div class="modal-content relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col">
+            <!-- Header -->
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                <h2 class="text-xl font-bold text-gray-900">Оформление заказа</h2>
+                <button data-action="close-checkout" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-6">
+                <!-- Order summary -->
+                <div class="order-summary mb-6">
+                    <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Ваш заказ</h3>
+                    <div id="checkoutItems" class="checkout-items space-y-2 bg-gray-50 rounded-xl p-4">
+                        <!-- Items via JS -->
+                    </div>
+                    <div class="checkout-total mt-3 text-right">
+                        <span class="text-gray-600">Итого: </span>
+                        <span id="checkoutTotal" class="text-xl font-bold text-bio-700">0 ₽</span>
+                    </div>
+                </div>
+
+                <!-- Form -->
+                <form id="checkoutForm" class="checkout-form space-y-4">
+                    <div class="form-group">
+                        <label for="customerName" class="block text-sm font-medium text-gray-700 mb-1.5">Ваше имя *</label>
+                        <input type="text" id="customerName" name="customerName" required minlength="2" maxlength="100" placeholder="Иван Иванов"
+                            class="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-bio-500/30 focus:border-bio-500 transition-all">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="customerPhone" class="block text-sm font-medium text-gray-700 mb-1.5">Телефон *</label>
+                        <input type="tel" id="customerPhone" name="customerPhone" required maxlength="32" placeholder="+7 (999) 123-45-67"
+                            class="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-bio-500/30 focus:border-bio-500 transition-all">
+                    </div>
+
+                    <!-- hCaptcha -->
+                    <div class="form-group">
+                        <div class="h-captcha"
+                             data-sitekey="HCAPTCHA_SITE_KEY_PLACEHOLDER"
+                             data-callback="onHcaptchaSuccess"
+                             data-expired-callback="onHcaptchaExpired"
+                             data-error-callback="onHcaptchaError"></div>
+                        <p id="hcaptchaHint" class="hidden text-sm text-red-500 mt-2"></p>
+                    </div>
+
+                    <button type="submit" id="checkoutSubmitBtn" class="btn-press w-full px-6 py-3.5 bg-bio-600 text-white rounded-xl font-semibold text-base hover:bg-bio-700 shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        Оформить заказ
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== SUCCESS MODAL ===== -->
+    <div id="successModal" class="modal fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-custom" data-action="close-success"></div>
+        <div class="modal-content success-content relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div class="p-8 text-center">
+                <!-- Success icon -->
+                <div class="success-icon w-16 h-16 mx-auto mb-4 rounded-full bg-bio-100 flex items-center justify-center">
+                    <svg class="w-8 h-8 text-bio-600" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                    </svg>
+                </div>
+
+                <h2 class="text-2xl font-bold text-gray-900 mb-2">Заказ оформлен!</h2>
+                <p class="text-gray-500 mb-6">Спасибо за ваш заказ</p>
+
+                <div class="order-info bg-bio-50 rounded-xl p-4 mb-6">
+                    <p class="text-sm text-gray-500 mb-1">Код заказа:</p>
+                    <p class="order-code text-2xl font-bold text-bio-700 tracking-wider" id="orderCode"></p>
+                    <p class="text-sm text-gray-500 mt-2">Сумма: <strong id="orderTotal" class="text-bio-700"></strong></p>
+                </div>
+
+                <!-- QR Code -->
+                <div id="orderQRContainer" class="hidden mb-6">
+                    <p class="text-sm text-gray-500 mb-2">QR-код для получения:</p>
+                    <img id="orderQR" src="" alt="QR-код заказа" class="w-36 h-36 mx-auto rounded-xl border-2 border-bio-200">
+                    <p class="text-xs text-gray-400 mt-2">Сохраните или сфотографируйте</p>
+                </div>
+
+                <!-- Instructions -->
+                <div class="instructions text-left bg-gray-50 rounded-xl p-4 mb-6">
+                    <h3 class="text-sm font-semibold text-gray-700 mb-2">Что дальше?</h3>
+                    <ol class="text-sm text-gray-600 space-y-1.5 list-decimal list-inside">
+                        <li>Запишите или сфотографируйте код заказа</li>
+                        <li>Приходите в школьную теплицу</li>
+                        <li>Назовите код администратору</li>
+                        <li>Оплатите и получите ваш заказ</li>
+                    </ol>
+                </div>
+
+                <button data-action="close-success" class="btn-press w-full px-6 py-3 bg-bio-600 text-white rounded-xl font-semibold hover:bg-bio-700 shadow-md transition-all">
+                    Закрыть
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== PRODUCT DETAIL MODAL ===== -->
+    <div id="productModal" class="product-modal fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-custom" data-action="close-product"></div>
+        <div class="product-modal-content relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] overflow-hidden">
+            <button class="product-modal-close absolute top-4 right-4 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-white/90 hover:bg-gray-100 shadow-sm transition-colors text-gray-400 hover:text-gray-600" data-action="close-product">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+
+            <div class="product-layout flex flex-col md:flex-row h-full">
+                <!-- Gallery -->
+                <div class="product-gallery w-full md:w-1/2 bg-gray-100">
+                    <div class="product-gallery-viewport aspect-square" id="productModalGallery"></div>
+                    <div class="product-gallery-thumbs flex gap-2 p-3 overflow-x-auto" id="productModalThumbs"></div>
+                </div>
+
+                <!-- Info -->
+                <div class="product-info w-full md:w-1/2 p-6 flex flex-col">
+                    <span id="productModalCategory" class="product-modal-category text-xs font-semibold text-bio-600 uppercase tracking-wider mb-2"></span>
+                    <h2 id="productModalTitle" class="text-2xl font-bold text-gray-900 mb-3"></h2>
+                    <div id="productModalStock" class="product-modal-stock mb-3"></div>
+                    <div id="productModalPrice" class="product-modal-price text-3xl font-bold text-bio-700 mb-4"></div>
+                    <div id="productModalDesc" class="product-modal-desc text-gray-600 leading-relaxed flex-1 overflow-y-auto mb-4"></div>
+                    <div class="product-modal-actions">
+                        <button id="productModalCartBtn" class="add-to-cart-btn btn-press w-full px-6 py-3 bg-bio-600 text-white rounded-xl font-semibold hover:bg-bio-700 shadow-md transition-all" data-action="add-to-cart">
+                            В корзину
                         </button>
                     </div>
-                    <div class="cart-total" id="cartTotalSection">
-                        <strong>Итого: <span id="cartTotal">0 ₽</span></strong>
-                    </div>
-                    <div class="cart-actions" id="cartActionsSection">
-                        <button data-action="clear-cart" class="clear-btn">Очистить корзину</button>
-                        <button id="checkoutBtn" data-action="open-checkout" class="checkout-btn">Оформить заказ</button>
-                    </div>
                 </div>
             </div>
 
-            <!-- Модальное окно оформления заказа -->
-            <div id="checkoutModal" class="modal">
-                <div class="modal-content">
-                    <span class="modal-close" data-action="close-checkout">&times;</span>
-                    <h2>Оформление заказа</h2>
+            <!-- Navigation -->
+            <button class="product-nav prev hidden md:flex absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 items-center justify-center rounded-full bg-white/90 hover:bg-white shadow-md transition-all text-gray-600" data-action="product-prev" title="Предыдущий">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+                </svg>
+            </button>
+            <button class="product-nav next hidden md:flex absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 items-center justify-center rounded-full bg-white/90 hover:bg-white shadow-md transition-all text-gray-600" data-action="product-next" title="Следующий">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                </svg>
+            </button>
+        </div>
+    </div>
 
-                    <div class="order-summary">
-                        <h3>Ваш заказ:</h3>
-                        <div id="checkoutItems" class="checkout-items">
-                            <!-- Товары заказа будут добавлены через JS -->
-                        </div>
-                        <div class="checkout-total">
-                            <strong>Итого: <span id="checkoutTotal">0 ₽</span></strong>
-                        </div>
-                    </div>
+    <!-- ===== TOAST ===== -->
+    <div id="toast" class="toast"></div>
 
-                    <form id="checkoutForm" class="checkout-form">
-                        <div class="form-group">
-                            <label for="customerName">Ваше имя *</label>
-                            <input type="text" id="customerName" name="customerName" required minlength="2" maxlength="100" placeholder="Иван Иванов">
-                        </div>
+    <!-- ===== SCRIPTS ===== -->
+    <script src="assets/js/main.js"></script>
+    <script src="assets/js/theme.js"></script>
+    <script src="assets/js/site-settings.js"></script>
+    <script src="assets/js/shop.js"></script>
 
-                        <div class="form-group">
-                            <label for="customerPhone">Телефон *</label>
-                            <input type="tel" id="customerPhone" name="customerPhone" required maxlength="32" placeholder="+7 (999) 123-45-67">
-                        </div>
-
-                        <!-- hCaptcha — защита от ботов -->
-                        <div class="form-group">
-                            <div class="h-captcha"
-                                 data-sitekey="HCAPTCHA_SITE_KEY_PLACEHOLDER"
-                                 data-callback="onHcaptchaSuccess"
-                                 data-expired-callback="onHcaptchaExpired"
-                                 data-error-callback="onHcaptchaError"></div>
-                            <p id="hcaptchaHint" style="display:none;font-size:13px;color:#e74c3c;margin-top:6px;"></p>
-                        </div>
-
-                        <button type="submit" id="checkoutSubmitBtn" class="submit-btn" disabled>Оформить заказ</button>
-                    </form>
-                </div>
-            </div>
-
-            <!-- Модальное окно успешного заказа -->
-            <div id="successModal" class="modal">
-                <div class="modal-content success-content">
-                    <span class="modal-close" data-action="close-success">&times;</span>
-                    <div class="success-icon">✓</div>
-                    <h2>Заказ успешно оформлен!</h2>
-
-                    <div class="order-info">
-                        <p>Код заказа:</p>
-                        <p class="order-code"><strong id="orderCode"></strong></p>
-                        <p>Сумма: <strong id="orderTotal"></strong></p>
-                    </div>
-
-                    <div id="orderQRContainer" style="display:none;margin:15px 0;">
-                        <p style="margin-bottom:10px;">QR-код для сканирования:</p>
-                        <img id="orderQR" src="" alt="QR-код заказа" style="width:150px;height:150px;border-radius:8px;border:2px solid #2ed573;">
-                        <p style="font-size:12px;color:#666;margin-top:5px;">Сохраните или сфотографируйте</p>
-                    </div>
-
-                    <div class="instructions">
-                        <h3>Что дальше?</h3>
-                        <ol>
-                            <li>Запишите или сфотографируйте код заказа</li>
-                            <li>Приходите в школьную теплицу</li>
-                            <li>Назовите код администратору</li>
-                            <li>Оплатите и получите ваш заказ</li>
-                        </ol>
-                    </div>
-
-                    <button class="close-success-btn" data-action="close-success">Закрыть</button>
-                </div>
-            </div>
-
-            <!-- МОДАЛКА КАРТОЧКИ ТОВАРА (стиль маркетплейса) -->
-            <div id="productModal" class="product-modal">
-                <div class="product-modal-content">
-                    <button class="product-modal-close" data-action="close-product">&times;</button>
-                    <div class="product-layout">
-                        <div class="product-gallery">
-                            <div class="product-gallery-viewport" id="productModalGallery">
-                                <!-- Слайды -->
-                            </div>
-                            <div class="product-gallery-thumbs" id="productModalThumbs"></div>
-                        </div>
-                        <div class="product-info">
-                            <span id="productModalCategory" class="product-modal-category"></span>
-                            <h2 id="productModalTitle"></h2>
-                            <div id="productModalStock" class="product-modal-stock"></div>
-                            <div id="productModalPrice" class="product-modal-price"></div>
-                            <div id="productModalDesc" class="product-modal-desc"></div>
-                            <div class="product-modal-actions">
-                                <button id="productModalCartBtn" class="add-to-cart-btn" data-action="add-to-cart">В корзину</button>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Навигация между товарами -->
-                    <button class="product-nav prev" data-action="product-prev" title="Предыдущий">&larr;</button>
-                    <button class="product-nav next" data-action="product-next" title="Следующий">&rarr;</button>
-                </div>
-            </div>
-
-            <script src="assets/js/shop.js"></script>
-	</body>
+</body>
 </html>
