@@ -43,7 +43,7 @@ class SQLiteDB {
 
   // ===== Низкоуровневые примитивы (async) =====
 
-  async run(sql, params = []) {
+  async run(sql, params = [], client = null) {
     try {
       const stmt = this.db.prepare(sql);
       const result = stmt.run(...(params || []));
@@ -54,7 +54,7 @@ class SQLiteDB {
     }
   }
 
-  async get(sql, params = []) {
+  async get(sql, params = [], client = null) {
     try {
       const stmt = this.db.prepare(sql);
       const row = stmt.get(...(params || []));
@@ -65,7 +65,7 @@ class SQLiteDB {
     }
   }
 
-  async all(sql, params = []) {
+  async all(sql, params = [], client = null) {
     try {
       const stmt = this.db.prepare(sql);
       const rows = stmt.all(...(params || [])).map(r => this.parseRow(r));
@@ -92,7 +92,7 @@ class SQLiteDB {
     this.db.exec('ROLLBACK');
   }
 
-  async insert(collection, doc) {
+  async insert(collection, doc, client = null) {
     const fields = Object.keys(doc);
     const values = Object.values(doc).map(v => {
       if (typeof v === 'object') return JSON.stringify(v);
@@ -114,14 +114,14 @@ class SQLiteDB {
     }
   }
 
-  async findOne(collection, query) {
+  async findOne(collection, query, client = null) {
     const table = this.sanitizeTableName(collection);
     const conditions = Object.keys(query).map(k => `${this.sanitizeFieldName(k)} = ?`).join(' AND ');
     const values = Object.values(query);
     return this.get(`SELECT * FROM ${table} WHERE ${conditions} LIMIT 1`, values);
   }
 
-  async find(collection, query = {}) {
+  async find(collection, query = {}, client = null) {
     const table = this.sanitizeTableName(collection);
     if (Object.keys(query).length === 0) {
       return this.all(`SELECT * FROM ${table}`);
@@ -131,7 +131,7 @@ class SQLiteDB {
     return this.all(`SELECT * FROM ${table} WHERE ${conditions}`, values);
   }
 
-  async updateOne(collection, filter, update) {
+  async updateOne(collection, filter, update, client = null) {
     const table = this.sanitizeTableName(collection);
     const filterConditions = Object.keys(filter).map(k => `${this.sanitizeFieldName(k)} = ?`).join(' AND ');
     const filterValues = Object.values(filter);
@@ -152,7 +152,7 @@ class SQLiteDB {
     }
   }
 
-  async deleteOne(collection, query) {
+  async deleteOne(collection, query, client = null) {
     const table = this.sanitizeTableName(collection);
     const conditions = Object.keys(query).map(k => `${this.sanitizeFieldName(k)} = ?`).join(' AND ');
     const values = Object.values(query);
@@ -166,7 +166,7 @@ class SQLiteDB {
     }
   }
 
-  async countDocuments(collection, query = {}) {
+  async countDocuments(collection, query = {}, client = null) {
     const table = this.sanitizeTableName(collection);
     if (Object.keys(query).length === 0) {
       const row = await this.get(`SELECT COUNT(*) as count FROM ${table}`);
