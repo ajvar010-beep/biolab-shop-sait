@@ -3,9 +3,10 @@
 
 services:
   - type: web
-    name: biolab-shop
+    name: biolab-shop-sait
     env: node
     region: frankfurt
+    autoDeploy: true
     buildCommand: npm install
     startCommand: npm start
     healthCheckPath: /api/health
@@ -17,10 +18,8 @@ services:
       - key: PORT
         value: 10000
       - key: ALLOWED_ORIGINS
-        # ⚠️ Заменить на домен продакшена перед деплоем
-        # Пример: https://biolab.ru,https://www.biolab.ru
-        value: ""
+        value: https://biolab-shop-sait.onrender.com
       - key: ADMIN_USERNAME
-        generateValue: true
+        value: admin
       - key: ADMIN_PASSWORD
         generateValue: true
