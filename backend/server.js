@@ -65,15 +65,17 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net', 'https://assets.hcaptcha.com'],
-      scriptSrc: ["'self'", 'https://cdn.jsdelivr.net', 'https://js.hcaptcha.com', 'https://assets.hcaptcha.com'],
+      // hCaptcha требует hcaptcha.com и *.hcaptcha.com в script/style/frame/connect:
+      // https://docs.hcaptcha.com/#content-security-policy-settings
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net', 'https://hcaptcha.com', 'https://*.hcaptcha.com'],
+      scriptSrc: ["'self'", 'https://cdn.jsdelivr.net', 'https://hcaptcha.com', 'https://*.hcaptcha.com'],
       scriptSrcAttr: ["'none'"],
-      imgSrc: ["'self'", 'data:', 'https:', 'https://assets.hcaptcha.com', 'https://images.unsplash.com'],
-      connectSrc: ["'self'", 'https://hcaptcha.com'],
+      imgSrc: ["'self'", 'data:', 'https:'],
+      connectSrc: ["'self'", 'https://cdn.jsdelivr.net', 'https://hcaptcha.com', 'https://*.hcaptcha.com'],
       fontSrc: ["'self'", 'data:', 'https://cdn.jsdelivr.net'],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
-      frameSrc: ["'self'", 'https://newassets.hcaptcha.com', 'https://assets.hcaptcha.com'],
+      frameSrc: ["'self'", 'https://hcaptcha.com', 'https://*.hcaptcha.com'],
       frameAncestors: ["'none'"],
       baseUri: ["'self'"],
       formAction: ["'self'"]

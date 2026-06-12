@@ -43,71 +43,71 @@ module.exports = {
         title: 'Фиалка фиолетовая',
         description: 'Красивое комнатное растение с нежными фиолетовыми цветами. Легко ухаживать.',
         price: 150, category: 'Цветы', stock: 25, size: 'normal',
-        imageUrl: 'https://images.unsplash.com/photo-1487527040587-8c6a67e85b64?w=400&h=300&fit=crop',
-        images: '["https://images.unsplash.com/photo-1487527040587-8c6a67e85b64?w=800&h=600&fit=crop"]'
+        imageUrl: '/assets/images/products/fialka.svg',
+        images: '["/assets/images/products/fialka.svg"]'
       },
       {
         title: 'Помидор черри',
         description: 'Молодые растения помидоров черри для вашего огорода. Отличный урожай.',
         price: 80, category: 'Овощи', stock: 40, size: 'normal',
-        imageUrl: 'https://images.unsplash.com/photo-1592841200221-a3f6e03c36e6?w=400&h=300&fit=crop',
-        images: '["https://images.unsplash.com/photo-1592841200221-a3f6e03c36e6?w=800&h=600&fit=crop"]'
+        imageUrl: '/assets/images/products/pomidor-cherri.svg',
+        images: '["/assets/images/products/pomidor-cherri.svg"]'
       },
       {
         title: 'Базилик зелёный',
         description: 'Ароматный базилик для кулинарии. Идеален для пиццы и салатов.',
         price: 50, category: 'Зелень', stock: 60, size: 'normal',
-        imageUrl: 'https://images.unsplash.com/photo-1618378927878-7dc73682e8e3?w=400&h=300&fit=crop',
-        images: '["https://images.unsplash.com/photo-1618378927878-7dc73682e8e3?w=800&h=600&fit=crop"]'
+        imageUrl: '/assets/images/products/bazilik.svg',
+        images: '["/assets/images/products/bazilik.svg"]'
       },
       {
         title: 'Рассада перца',
         description: 'Здоровая рассада сладкого перца. Созревает через 70-80 дней.',
         price: 45, category: 'Рассада', stock: 30, size: 'normal',
-        imageUrl: 'https://images.unsplash.com/photo-1568480704474-d55e47e9af03?w=400&h=300&fit=crop',
-        images: '["https://images.unsplash.com/photo-1568480704474-d55e47e9af03?w=800&h=600&fit=crop"]'
+        imageUrl: '/assets/images/products/rassada-perca.svg',
+        images: '["/assets/images/products/rassada-perca.svg"]'
       },
       {
         title: 'Гортензия',
         description: 'Красивая гортензия с крупными соцветиями. Украсит любой сад.',
         price: 350, category: 'Кустарники', stock: 15, size: 'large',
-        imageUrl: 'https://images.unsplash.com/photo-1468439237565-2b249928f5a0?w=400&h=300&fit=crop',
-        images: '["https://images.unsplash.com/photo-1468439237565-2b249928f5a0?w=800&h=600&fit=crop"]'
+        imageUrl: '/assets/images/products/gortenziya.svg',
+        images: '["/assets/images/products/gortenziya.svg"]'
       },
       {
         title: 'Яблоня молодая',
         description: 'Молодое дерево яблони. Даст первый урожай через 3-4 года.',
         price: 250, category: 'Деревья', stock: 10, size: 'large',
-        imageUrl: 'https://images.unsplash.com/photo-1507003213457-2ad19c50a4b2?w=400&h=300&fit=crop',
-        images: '["https://images.unsplash.com/photo-1560969028-259ab67ca4b1?w=800&h=600&fit=crop"]'
+        imageUrl: '/assets/images/products/yablonya.svg',
+        images: '["/assets/images/products/yablonya.svg"]'
       },
       {
         title: 'Семена подсолнуха',
         description: 'Крупные семена подсолнуха для посадки. Высота до 2 метров.',
         price: 30, category: 'Семена', stock: 100, size: 'normal',
-        imageUrl: 'https://images.unsplash.com/photo-1551687663-bc3c0de2ca5f?w=400&h=300&fit=crop',
-        images: '["https://images.unsplash.com/photo-1551687663-bc3c0de2ca5f?w=800&h=600&fit=crop"]'
+        imageUrl: '/assets/images/products/semena-podsolnuha.svg',
+        images: '["/assets/images/products/semena-podsolnuha.svg"]'
       },
       {
         title: 'Рассада огурца',
         description: 'Здоровая рассада огурцов для теплицы и открытого грунта.',
         price: 40, category: 'Рассада', stock: 35, size: 'normal',
-        imageUrl: 'https://images.unsplash.com/photo-1447175301003-33f4985107c4?w=400&h=300&fit=crop',
-        images: '["https://images.unsplash.com/photo-1447175301003-33f4985107c4?w=800&h=600&fit=crop"]'
+        imageUrl: '/assets/images/products/rassada-ogurca.svg',
+        images: '["/assets/images/products/rassada-ogurca.svg"]'
       },
       {
         title: 'Ромашка',
         description: 'Декоративная ромашка с белыми лепестками. Простой уход.',
         price: 60, category: 'Цветы', stock: 50, size: 'normal',
-        imageUrl: 'https://images.unsplash.com/photo-1490751746386-2e0c4f2f502f?w=400&h=300&fit=crop',
-        images: '["https://images.unsplash.com/photo-1490751746386-2e0c4f2f502f?w=800&h=600&fit=crop"]'
+        imageUrl: '/assets/images/products/romashka.svg',
+        images: '["/assets/images/products/romashka.svg"]'
       },
       {
         title: 'Укроп',
         description: 'Свежий укроп для ваших кулинарных шедевров.',
         price: 35, category: 'Зелень', stock: 70, size: 'normal',
-        imageUrl: 'https://images.unsplash.com/photo-1618378927878-7dc73682e8e3?w=400&h=300&fit=crop',
-        images: '["https://images.unsplash.com/photo-1618378927878-7dc73682e8e3?w=800&h=600&fit=crop"]'
+        imageUrl: '/assets/images/products/ukrop.svg',
+        images: '["/assets/images/products/ukrop.svg"]'
       }
     ];
 

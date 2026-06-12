@@ -100,19 +100,13 @@ function updateCartUI() {
   if (cartCount) {
     const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
     cartCount.textContent = String(totalItems);
-    cartCount.style.display = totalItems > 0 ? 'inline-flex' : 'none';
+    cartCount.style.display = totalItems > 0 ? 'inline' : 'none';
   }
 
   // Показываем пустую корзину или товары
   const isEmpty = cart.length === 0;
-  if (emptyCartState) {
-    emptyCartState.classList.toggle('hidden', !isEmpty);
-    emptyCartState.classList.toggle('flex', isEmpty);
-    emptyCartState.classList.toggle('flex-col', isEmpty);
-  }
-  if (cartItems) {
-    cartItems.style.display = isEmpty ? 'none' : 'block';
-  }
+  if (emptyCartState) emptyCartState.style.display = isEmpty ? 'block' : 'none';
+  if (cartItems) cartItems.style.display = isEmpty ? 'none' : 'block';
   if (cartTotalSection) cartTotalSection.style.display = isEmpty ? 'none' : 'block';
   if (cartActionsSection) cartActionsSection.style.display = isEmpty ? 'none' : 'flex';
 
@@ -182,27 +176,16 @@ function clearCart() {
   saveCart();
 }
 
-function showNotification(message, type = 'success') {
-  // Use toast if available, fallback to inline notification
-  const toast = document.getElementById('toast');
-  if (toast) {
-    toast.textContent = message;
-    toast.className = `toast toast-${type}`;
-    setTimeout(() => toast.classList.add('show'), 50);
+function showNotification(message) {
+  const notification = el('div', { className: 'notification', text: message });
+  document.body.appendChild(notification);
+  setTimeout(() => notification.classList.add('show'), 100);
+  setTimeout(() => {
+    notification.classList.remove('show');
     setTimeout(() => {
-      toast.classList.remove('show');
-    }, 2500);
-  } else {
-    const notification = el('div', { className: `notification notification-${type}`, text: message });
-    document.body.appendChild(notification);
-    setTimeout(() => notification.classList.add('show'), 100);
-    setTimeout(() => {
-      notification.classList.remove('show');
-      setTimeout(() => {
-        if (notification.parentNode) notification.parentNode.removeChild(notification);
-      }, 300);
-    }, 2000);
-  }
+      if (notification.parentNode) notification.parentNode.removeChild(notification);
+    }, 300);
+  }, 2000);
 }
 
 // ===== Загрузка и отображение товаров =====
@@ -453,15 +436,13 @@ function renderProducts(products) {
 function openCart() {
   const modal = document.getElementById('cartModal');
   if (!modal) return;
-  modal.classList.add('active');
-  document.body.style.overflow = 'hidden';
+  modal.style.display = 'flex';
   updateCartUI();
 }
 
 function closeCart() {
   const modal = document.getElementById('cartModal');
-  if (modal) modal.classList.remove('active');
-  document.body.style.overflow = '';
+  if (modal) modal.style.display = 'none';
 }
 
 function openCheckout() {
@@ -491,14 +472,12 @@ function openCheckout() {
   });
 
   if (orderTotal) orderTotal.textContent = `${total} ₽`;
-  modal.classList.add('active');
-  document.body.style.overflow = 'hidden';
+  modal.style.display = 'flex';
 }
 
 function closeCheckout() {
   const modal = document.getElementById('checkoutModal');
-  if (modal) modal.classList.remove('active');
-  document.body.style.overflow = '';
+  if (modal) modal.style.display = 'none';
   const form = document.getElementById('checkoutForm');
   if (form) form.reset();
 }
@@ -520,7 +499,7 @@ async function submitOrder(event) {
     hcaptchaToken = getHcaptchaToken() || '';
   }
 
-  if (!hcaptchaToken) {
+  if (!hcaptchaToken && !window.HCAPTCHA_DISABLED) {
     alert('Пожалуйста, пройдите проверку hCaptcha');
     if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Оформить заказ'; }
     return;
@@ -575,14 +554,12 @@ function showOrderSuccess(order) {
     qrContainer.style.display = 'none';
   }
 
-  modal.classList.add('active');
-  document.body.style.overflow = 'hidden';
+  modal.style.display = 'flex';
 }
 
 function closeSuccessModal() {
   const modal = document.getElementById('successModal');
-  if (modal) modal.classList.remove('active');
-  document.body.style.overflow = '';
+  if (modal) modal.style.display = 'none';
 }
 
 function showError(message) {
@@ -610,13 +587,13 @@ function openProductModal(productIndex) {
   if (!product) return;
 
   renderProductModal(product);
-  modal.classList.add('active');
+  modal.classList.add('open');
   document.body.style.overflow = 'hidden';
 }
 
 function closeProductModal() {
   const modal = document.getElementById('productModal');
-  if (modal) modal.classList.remove('active');
+  if (modal) modal.classList.remove('open');
   document.body.style.overflow = '';
 }
 
@@ -954,17 +931,16 @@ function setupHandlers() {
   const checkoutForm = document.getElementById('checkoutForm');
   if (checkoutForm) checkoutForm.addEventListener('submit', submitOrder);
 
-  // Закрытие модалок по клику на backdrop (элемент с классом backdrop-blur-custom внутри modal)
+  // Закрытие модалок по клику вне их
   window.addEventListener('click', (event) => {
-    const isBackdrop = event.target.classList && event.target.classList.contains('backdrop-blur-custom');
-    if (!isBackdrop) return;
-    const modal = event.target.closest('.modal, .product-modal');
-    if (!modal) return;
-    const id = modal.id;
-    if (id === 'cartModal') closeCart();
-    else if (id === 'checkoutModal') closeCheckout();
-    else if (id === 'successModal') closeSuccessModal();
-    else if (id === 'productModal') closeProductModal();
+    const cartModal = document.getElementById('cartModal');
+    const checkoutModal = document.getElementById('checkoutModal');
+    const successModal = document.getElementById('successModal');
+    const productModal = document.getElementById('productModal');
+    if (event.target === cartModal) closeCart();
+    if (event.target === checkoutModal) closeCheckout();
+    if (event.target === successModal) closeSuccessModal();
+    if (event.target === productModal) closeProductModal();
   });
 
   // Esc — закрыть текущую модалку
@@ -976,7 +952,7 @@ function setupHandlers() {
   // Стрелки для навигации по товарам
   document.addEventListener('keydown', (event) => {
     const productModal = document.getElementById('productModal');
-    if (!productModal.classList.contains('active')) return;
+    if (!productModal.classList.contains('open')) return;
     if (event.key === 'ArrowLeft') navigateProduct(-1);
     if (event.key === 'ArrowRight') navigateProduct(1);
   });
