@@ -64,21 +64,30 @@ if (menu) {
   });
 
   // Click on menu links
+  // Без stopPropagation: иначе клики не доходят до document-слушателей theme.js
+  // (переключатели темы/шрифта). Закрытие по клику мимо меню само игнорирует #menu.
   menu.addEventListener('click', e => {
-    e.stopPropagation();
     const link = e.target.closest('a');
     if (!link) return;
+    // Переключатели темы/размера шрифта обрабатывает theme.js — меню не закрываем
+    if (link.matches('[data-theme-set], [data-fontsize-set]')) return;
     e.preventDefault();
     hideMenu();
     const href = link.getAttribute('href');
-    if (href && href !== '#menu') {
+    if (href && href !== '#menu' && href !== '#') {
       setTimeout(() => { window.location.href = href; }, 350);
     }
   });
 
-  // Body click — hide menu
+  // Body click — hide menu.
+  // Важно: пропускаем клики по кнопке-открывашке a[href="#menu"] — её обрабатывает
+  // toggle-слушатель ниже. Оба слушателя висят на document, и stopPropagation
+  // не останавливает соседние обработчики на том же узле: без этой проверки
+  // hideMenu() срабатывал первым и блокировал toggleMenu() (меню не открывалось).
   document.addEventListener('click', e => {
+    if (!document.body.classList.contains('is-menu-visible')) return;
     if (e.target.closest('#menu')) return;
+    if (e.target.closest('a[href="#menu"]')) return;
     hideMenu();
   });
 
