@@ -544,19 +544,9 @@ function showOrderSuccess(order) {
   if (!modal) return;
   const codeEl = document.getElementById('orderCode');
   const totalEl = document.getElementById('orderTotal');
-  const qrContainer = document.getElementById('orderQRContainer');
-  const qrImg = document.getElementById('orderQR');
 
   if (codeEl) codeEl.textContent = String(order.orderCode || '');
   if (totalEl) totalEl.textContent = `${order.totalAmount || 0} ₽`;
-
-  // Показываем QR если есть
-  if (qrContainer && qrImg && order.qrCode) {
-    qrImg.src = order.qrCode;
-    qrContainer.style.display = 'block';
-  } else if (qrContainer) {
-    qrContainer.style.display = 'none';
-  }
 
   modal.style.display = 'flex';
 }

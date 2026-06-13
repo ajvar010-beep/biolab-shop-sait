@@ -27,8 +27,7 @@
             <div class="header">
                 <h1>Управление заказами</h1>
                 <div style="display:flex;gap:10px;">
-                    <button class="btn btn-primary" id="scanQrBtn">📷 Сканировать QR</button>
-                    <button class="btn btn-secondary" id="manualQrBtn">⌨️ Ввести код</button>
+                    <button class="btn btn-primary" id="manualQrBtn">🔍 Найти по коду</button>
                 </div>
             </div>
 
@@ -62,22 +61,6 @@
         </div>
     </div>
 
-    <div id="qrScanModal" class="modal" role="dialog" aria-modal="true">
-        <div class="modal-content" style="max-width:500px;">
-            <div class="modal-header">
-                <h2>Сканировать QR-код</h2>
-                <button class="close-modal" id="closeQrModal" type="button" aria-label="Закрыть">&times;</button>
-            </div>
-            <div style="padding:20px;">
-                <div id="qr-reader" style="width:100%;"></div>
-                <div id="qrMessage" style="display:none;margin-top:15px;" role="alert" aria-live="polite"></div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" id="cancelQrBtn">Отмена</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <div id="qrManualModal" class="modal" role="dialog" aria-modal="true">
         <div class="modal-content">
             <div class="modal-header">
@@ -99,7 +82,6 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/orders.js"></script>

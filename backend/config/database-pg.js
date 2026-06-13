@@ -281,7 +281,6 @@ class PostgresDB {
       completedat: 'completedAt',
       cancelledat: 'cancelledAt',
       cancelreason: 'cancelReason',
-      qrcode: 'qrCode',
       abouttext: 'aboutText',
       workinghours: 'workingHours',
       tokenversion: 'tokenVersion'

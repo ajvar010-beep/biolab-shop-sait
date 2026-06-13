@@ -20,12 +20,9 @@
 
     const ordersContainer = document.getElementById('ordersContainer');
     const orderModal = document.getElementById('orderModal');
-    const qrScanModal = document.getElementById('qrScanModal');
     const qrManualModal = document.getElementById('qrManualModal');
     const closeModal = document.getElementById('closeModal');
-    const closeQrModal = document.getElementById('closeQrModal');
     const closeQrManualModal = document.getElementById('closeQrManualModal');
-    const scanQrBtn = document.getElementById('scanQrBtn');
     const statusFilter = document.getElementById('statusFilter');
     const searchInput = document.getElementById('searchInput');
 
@@ -328,79 +325,7 @@
         });
     }
 
-    // QR Scanner
-    let html5QrCode = null;
-    let isScanning = false;
-    let stopRequested = false; // запрошена остановка, пока камера ещё стартует
-
-    async function startQrScanner() {
-        if (isScanning) return;
-        stopRequested = false;
-
-        const qrMessage = document.getElementById('qrMessage');
-        qrMessage.textContent = 'Запуск камеры...';
-        qrMessage.className = '';
-        qrMessage.style.display = 'block';
-
-        try {
-            html5QrCode = new Html5Qrcode('qr-reader');
-            await html5QrCode.start(
-                { facingMode: 'environment' },
-                { fps: 10, qrbox: { width: 250, height: 250 } },
-                onQrCodeScanned,
-                (errorMessage) => {}
-            );
-            isScanning = true;
-            qrMessage.style.display = 'none';
-            // Если модалку закрыли, пока камера стартовала — гасим сразу
-            if (stopRequested) await stopQrScanner();
-        } catch (err) {
-            qrMessage.textContent = 'Не удалось запустить камеру. Проверьте разрешения браузера.';
-            qrMessage.className = 'error-message';
-            qrMessage.style.display = 'block';
-            console.error('QR scanner error:', err);
-        }
-    }
-
-    async function stopQrScanner() {
-        // Помечаем намерение остановиться даже если start() ещё не завершился
-        stopRequested = true;
-        if (html5QrCode && isScanning) {
-            try { await html5QrCode.stop(); } catch (e) {}
-            try { html5QrCode.clear(); } catch (e) {}
-            isScanning = false;
-        }
-    }
-
-    async function onQrCodeScanned(decodedText) {
-        if (navigator.vibrate) navigator.vibrate(100);
-        await stopQrScanner();
-        qrScanModal.classList.remove('active');
-
-        let orderCode = decodedText.trim();
-        if (orderCode.includes('/')) {
-            const parts = orderCode.split('/');
-            orderCode = parts[parts.length - 1].split('?')[0];
-        }
-
-        if (!/^\d{9,12}$/.test(orderCode)) {
-            toast('QR-код не распознан как код заказа', 'error');
-            return;
-        }
-
-        try {
-            const response = await apiRequest(`/orders/admin/code/${encodeURIComponent(orderCode)}`);
-            if (response.ok) {
-                await viewOrder(orderCode);
-            } else {
-                toast('Заказ не найден', 'error');
-            }
-        } catch (e) {
-            toast('Ошибка поиска заказа', 'error');
-        }
-    }
-
-    // Manual QR code entry
+    // Поиск заказа по коду (находит заказы даже старше последних 500 в списке)
     async function findOrderByCodeManual() {
         const orderCode = document.getElementById('qrOrderNumber').value.trim();
         const qrManualMessage = document.getElementById('qrManualMessage');
@@ -434,24 +359,8 @@
     }
 
     closeModal.addEventListener('click', () => orderModal.classList.remove('active'));
-    closeQrModal.addEventListener('click', async () => {
-        qrScanModal.classList.remove('active');
-        await stopQrScanner();
-    });
-    qrScanModal.addEventListener('click', async (e) => {
-        if (e.target === qrScanModal) {
-            qrScanModal.classList.remove('active');
-            await stopQrScanner();
-        }
-    });
     qrManualModal.addEventListener('click', (e) => { if (e.target === qrManualModal) qrManualModal.classList.remove('active'); });
     orderModal.addEventListener('click', (e) => { if (e.target === orderModal) orderModal.classList.remove('active'); });
-
-    scanQrBtn.addEventListener('click', async () => {
-        document.getElementById('qrMessage').style.display = 'none';
-        qrScanModal.classList.add('active');
-        await startQrScanner();
-    });
 
     document.getElementById('manualQrBtn').addEventListener('click', () => {
         document.getElementById('qrOrderNumber').value = '';
@@ -461,19 +370,11 @@
     });
 
     closeQrManualModal.addEventListener('click', () => qrManualModal.classList.remove('active'));
-    document.getElementById('cancelQrBtn').addEventListener('click', async () => {
-        qrScanModal.classList.remove('active');
-        await stopQrScanner();
-    });
     document.getElementById('cancelQrManualBtn').addEventListener('click', () => qrManualModal.classList.remove('active'));
 
-    async function findOrderByCode() {
-        await findOrderByCodeManual();
-    }
-
-    document.getElementById('findOrderBtn').addEventListener('click', findOrderByCode);
+    document.getElementById('findOrderBtn').addEventListener('click', findOrderByCodeManual);
     document.getElementById('qrOrderNumber').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') { e.preventDefault(); findOrderByCode(); }
+        if (e.key === 'Enter') { e.preventDefault(); findOrderByCodeManual(); }
     });
 
     statusFilter.addEventListener('change', filterAndDisplay);
@@ -482,7 +383,6 @@
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             if (orderModal.classList.contains('active')) orderModal.classList.remove('active');
-            if (qrScanModal.classList.contains('active')) { qrScanModal.classList.remove('active'); stopQrScanner(); }
             if (qrManualModal.classList.contains('active')) qrManualModal.classList.remove('active');
         }
     });
@@ -491,7 +391,7 @@
     function startAutoRefresh() {
         if (refreshTimer) return;
         refreshTimer = setInterval(() => {
-            if (document.visibilityState === 'visible' && !orderModal.classList.contains('active') && !qrScanModal.classList.contains('active')) {
+            if (document.visibilityState === 'visible' && !orderModal.classList.contains('active')) {
                 loadOrders();
             }
         }, 30000);
@@ -499,7 +399,7 @@
     function stopAutoRefresh() {
         if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
     }
-    window.addEventListener('beforeunload', async () => { stopAutoRefresh(); await stopQrScanner(); });
+    window.addEventListener('beforeunload', () => { stopAutoRefresh(); });
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') stopAutoRefresh();
         else startAutoRefresh();

@@ -9,19 +9,21 @@ const path = require('path');
 const OUT_DIR = path.join(__dirname, '..', 'assets', 'images', 'products');
 
 const PRODUCTS = [
-  { slug: 'fialka',             title: 'Фиалка фиолетовая', emoji: '🌸', from: '#a78bfa', to: '#6d28d9' },
-  { slug: 'pomidor-cherri',     title: 'Помидор черри',     emoji: '🍅', from: '#fca5a5', to: '#b91c1c' },
-  { slug: 'bazilik',            title: 'Базилик зелёный',   emoji: '🌱', from: '#86efac', to: '#15803d' },
-  { slug: 'rassada-perca',      title: 'Рассада перца',     emoji: '🌶️', from: '#fdba74', to: '#c2410c' },
-  { slug: 'gortenziya',         title: 'Гортензия',         emoji: '🌺', from: '#f9a8d4', to: '#9d174d' },
-  { slug: 'yablonya',           title: 'Яблоня молодая',    emoji: '🍎', from: '#bef264', to: '#3f6212' },
-  { slug: 'semena-podsolnuha',  title: 'Семена подсолнуха', emoji: '🌻', from: '#fde047', to: '#a16207' },
-  { slug: 'rassada-ogurca',     title: 'Рассада огурца',    emoji: '🥒', from: '#6ee7b7', to: '#047857' },
-  { slug: 'romashka',           title: 'Ромашка',           emoji: '🌼', from: '#fef9c3', to: '#ca8a04' },
-  { slug: 'ukrop',              title: 'Укроп',             emoji: '🌿', from: '#a7f3d0', to: '#065f46' }
+  { slug: 'fialka',             title: 'Фиалка фиолетовая', emoji: '🌸', from: '#f3effe', to: '#d7c8f7' },
+  { slug: 'pomidor-cherri',     title: 'Помидор черри',     emoji: '🍅', from: '#fdeeee', to: '#f6c9c9' },
+  { slug: 'bazilik',            title: 'Базилик зелёный',   emoji: '🌱', from: '#eef9f0', to: '#c7ecd1' },
+  { slug: 'rassada-perca',      title: 'Рассада перца',     emoji: '🌶️', from: '#fff2e6', to: '#fad9b8' },
+  { slug: 'gortenziya',         title: 'Гортензия',         emoji: '🌺', from: '#fdeef6', to: '#f6cce2' },
+  { slug: 'yablonya',           title: 'Яблоня молодая',    emoji: '🍎', from: '#f3faea', to: '#d6ecbb' },
+  { slug: 'semena-podsolnuha',  title: 'Семена подсолнуха', emoji: '🌻', from: '#fffbe8', to: '#f7e7ad' },
+  { slug: 'rassada-ogurca',     title: 'Рассада огурца',    emoji: '🥒', from: '#eafaf2', to: '#c2ecd6' },
+  { slug: 'romashka',           title: 'Ромашка',           emoji: '🌼', from: '#fffced', to: '#f8edbf' },
+  { slug: 'ukrop',              title: 'Укроп',             emoji: '🌿', from: '#eafaf1', to: '#c4ead4' }
 ];
 
-function svg({ title, emoji, from, to }) {
+function svg({ emoji, from, to }) {
+  // Светлый пастельный фон + крупный эмодзи. Заголовок не впечатываем —
+  // название товара показывается в карточке под изображением.
   return `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
@@ -30,12 +32,10 @@ function svg({ title, emoji, from, to }) {
     </linearGradient>
   </defs>
   <rect width="800" height="600" fill="url(#bg)"/>
-  <circle cx="120" cy="100" r="160" fill="#ffffff" opacity="0.10"/>
-  <circle cx="700" cy="520" r="220" fill="#ffffff" opacity="0.08"/>
-  <circle cx="650" cy="80" r="60" fill="#ffffff" opacity="0.12"/>
-  <text x="400" y="320" font-size="190" text-anchor="middle" dominant-baseline="middle">${emoji}</text>
-  <text x="400" y="510" font-size="44" font-weight="700" text-anchor="middle"
-        font-family="Segoe UI, Arial, sans-serif" fill="#ffffff" opacity="0.95">${title}</text>
+  <circle cx="130" cy="110" r="170" fill="#ffffff" opacity="0.35"/>
+  <circle cx="690" cy="510" r="230" fill="#ffffff" opacity="0.28"/>
+  <circle cx="660" cy="90" r="64" fill="#ffffff" opacity="0.40"/>
+  <text x="400" y="310" font-size="230" text-anchor="middle" dominant-baseline="middle">${emoji}</text>
 </svg>
 `;
 }
