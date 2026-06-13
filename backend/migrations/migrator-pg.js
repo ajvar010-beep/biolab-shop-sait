@@ -44,16 +44,23 @@ async function run(db) {
 
     console.log(`[Миграция ${migration.num}] Выполняем: ${migration.name}...`);
 
+    // Вся миграция + запись в _migrations — в одной транзакции на выделенном клиенте.
+    // Иначе при падении посередине часть DDL/DML применится, а отметки не будет →
+    // на следующем деплое миграция повторится поверх частичных изменений.
+    const client = await db.beginTransaction();
+    db._migrationClient = client;
     try {
       await migration.up(db);
-
-      await db.run('INSERT INTO _migrations (id, name) VALUES ($1, $2)', [migration.id, migration.name]);
-
+      await db.run('INSERT INTO _migrations (id, name) VALUES ($1, $2)', [migration.id, migration.name], client);
+      await db.commit(client);
       console.log(`[Миграция ${migration.num}] ✅ Выполнена`);
       executed++;
     } catch (error) {
+      await db.rollback(client);
       console.error(`[Миграция ${migration.num}] ❌ Ошибка: ${error.message}`);
       throw error;
+    } finally {
+      db._migrationClient = null;
     }
   }
 
