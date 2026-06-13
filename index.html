@@ -33,9 +33,11 @@
         <!-- Model Viewer через jsDelivr (работает в РФ) -->
         <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.3.0/dist/model-viewer.min.js"></script>
 
-        <!-- hCaptcha — защита от ботов на форме заказа -->
-        <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
-        <!-- Колбэки hCaptcha вынесены в отдельный файл — CSP запрещает инлайн-скрипты -->
+        <!-- hCaptcha НЕ настроена (нет реального site key) — скрипт API не грузим,
+             иначе он автоматически рендерит виджет с placeholder-ключом и сыплет 403.
+             Чтобы включить: задайте HCAPTCHA_SITE_KEY в виджете ниже и раскомментируйте строку. -->
+        <!-- <script src="https://js.hcaptcha.com/1/api.js" async defer></script> -->
+        <!-- Колбэки hCaptcha (скрывают виджет и разблокируют кнопку, пока капча не настроена) -->
         <script src="assets/js/hcaptcha-callbacks.js"></script>
 
         <!-- Inter font через jsDelivr (работает в РФ) -->

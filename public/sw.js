@@ -2,8 +2,8 @@
  * Service Worker для Biolab Shop
  * Cache-first для статики, network-first для API
  */
-const CACHE_NAME = 'biolab-v3';
-const STATIC_CACHE = 'biolab-static-v3';
+const CACHE_NAME = 'biolab-v4';
+const STATIC_CACHE = 'biolab-static-v4';
 const OFFLINE_URL = '/offline.html';
 
 // Файлы для кэширования при установке.
