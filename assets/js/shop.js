@@ -1,14 +1,24 @@
-// API Configuration
-const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-  ? 'http://localhost:3000/api'
-  : `${window.location.protocol}//${window.location.hostname}/api`;
+// API Configuration.
+// Используем window.location.origin — он включает протокол, хост И порт,
+// поэтому доступ по LAN-IP с портом (http://192.168.x.x:3000) тоже работает.
+const API_URL = `${window.location.origin}/api`;
 
-// Корзина
+// Корзина. Валидируем каждую позицию при загрузке: битый JSON, чужие/старые
+// записи или некорректные числа не должны ломать витрину и оформление заказа.
 let cart = [];
 try {
   const raw = localStorage.getItem('biolab_cart');
-  cart = raw ? JSON.parse(raw) : [];
-  if (!Array.isArray(cart)) cart = [];
+  const parsed = raw ? JSON.parse(raw) : [];
+  if (Array.isArray(parsed)) {
+    cart = parsed
+      .filter(it => it && typeof it.productId === 'string' && it.productId)
+      .map(it => ({
+        productId: it.productId,
+        title: String(it.title || ''),
+        price: Number.isFinite(Number(it.price)) ? Number(it.price) : 0,
+        quantity: Math.min(Math.max(Math.floor(Number(it.quantity)) || 1, 1), 100)
+      }));
+  }
 } catch (_) {
   cart = [];
 }
@@ -81,6 +91,23 @@ function el(tag, opts = {}, ...children) {
   return node;
 }
 
+// Действующая цена с учётом акции.
+// Акция активна, если задана salePrice (< обычной) и текущая дата в окне saleStart..saleEnd
+// (любая из границ опциональна). Возвращает { price, oldPrice|null, onSale }.
+function effectivePrice(product) {
+  const base = parseInt(product.price, 10) || 0;
+  const sale = product.salePrice == null ? null : Number(product.salePrice);
+  if (sale == null || !Number.isFinite(sale) || sale <= 0 || sale >= base) {
+    return { price: base, oldPrice: null, onSale: false };
+  }
+  const now = Date.now();
+  const start = product.saleStart ? Date.parse(product.saleStart) : null;
+  const end = product.saleEnd ? Date.parse(product.saleEnd) : null;
+  if (start && Number.isFinite(start) && now < start) return { price: base, oldPrice: null, onSale: false };
+  if (end && Number.isFinite(end) && now > end) return { price: base, oldPrice: null, onSale: false };
+  return { price: Math.round(sale), oldPrice: base, onSale: true };
+}
+
 // ===== Корзина =====
 
 function saveCart() {
@@ -100,7 +127,9 @@ function updateCartUI() {
   if (cartCount) {
     const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
     cartCount.textContent = String(totalItems);
-    cartCount.style.display = totalItems > 0 ? 'inline' : 'none';
+    // Кружок свёрстан на display:flex (центрирование цифры) — не перетираем на inline,
+    // иначе бейдж теряет форму. Управляем видимостью через класс.
+    cartCount.classList.toggle('is-hidden', totalItems === 0);
   }
 
   // Показываем пустую корзину или товары
@@ -296,12 +325,22 @@ function renderProducts(products) {
   if (!tilesContainer) return;
   tilesContainer.innerHTML = '';
 
+  // Отдельный элемент-подсказка для пустого поиска (если есть в разметке)
+  const searchEmptyMsg = document.getElementById('searchEmptyMsg');
+  const isSearching = activeSearch.trim() !== '' || activeCategory !== 'all';
+
   if (products.length === 0) {
-    tilesContainer.appendChild(
-      el('p', { style: { textAlign: 'center', width: '100%', padding: '40px' }, text: 'Товары пока не добавлены' })
-    );
+    if (isSearching && searchEmptyMsg) {
+      // Пусто из-за фильтра/поиска — показываем спец-подсказку
+      searchEmptyMsg.style.display = 'block';
+    } else {
+      tilesContainer.appendChild(
+        el('p', { style: { textAlign: 'center', width: '100%', padding: '40px' }, text: 'Товары пока не добавлены' })
+      );
+    }
     return;
   }
+  if (searchEmptyMsg) searchEmptyMsg.style.display = 'none';
 
   let modelCounter = 0;
   const apiBase = API_URL.replace('/api', '');
@@ -314,7 +353,8 @@ function renderProducts(products) {
     const title = String(product.title || '');
     const description = String(product.description || '');
     const category = String(product.category || '');
-    const price = parseInt(product.price, 10) || 0;
+    const pricing = effectivePrice(product);
+    const price = pricing.price;
     const stock = parseInt(product.stock, 10) || 0;
 
     // Безопасные URL
@@ -329,7 +369,7 @@ function renderProducts(products) {
     // Caption для Fancybox — текст-only, чтобы не пробовать инжектить HTML
     const captionLines = [title];
     if (description) captionLines.push('', description);
-    captionLines.push('', `Цена: ${price} ₽`);
+    captionLines.push('', pricing.onSale ? `Цена: ${price} ₽ (было ${pricing.oldPrice} ₽)` : `Цена: ${price} ₽`);
     captionLines.push(stock > 0 ? `В наличии: ${stock} шт.` : 'Нет в наличии');
     const captionText = captionLines.join('\n');
 
@@ -381,8 +421,16 @@ function renderProducts(products) {
     stockBadge.textContent = stock > 0 ? `В наличии: ${stock} шт.` : 'Нет в наличии';
     article.appendChild(stockBadge);
 
-    // Бейдж с ценой
-    article.appendChild(el('div', { className: 'price-badge', text: `${price} ₽` }));
+    // Бейдж с ценой (со скидкой — старая цена зачёркнута)
+    if (pricing.onSale) {
+      const priceBadge = el('div', { className: 'price-badge on-sale' },
+        el('span', { className: 'price-old', text: `${pricing.oldPrice} ₽` }),
+        el('span', { className: 'price-new', text: `${price} ₽` })
+      );
+      article.appendChild(priceBadge);
+    } else {
+      article.appendChild(el('div', { className: 'price-badge', text: `${price} ₽` }));
+    }
 
     // Кнопка "В корзину"
     const btnWrap = el('div');
@@ -653,7 +701,17 @@ function renderProductModal(product) {
     }
   }
 
-  if (priceEl) priceEl.textContent = `${parseInt(product.price, 10) || 0} ₽`;
+  const modalPricing = effectivePrice(product);
+  if (priceEl) {
+    priceEl.textContent = '';
+    if (modalPricing.onSale) {
+      priceEl.appendChild(el('span', { className: 'price-old', text: `${modalPricing.oldPrice} ₽` }));
+      priceEl.appendChild(document.createTextNode(' '));
+      priceEl.appendChild(el('span', { className: 'price-new', text: `${modalPricing.price} ₽` }));
+    } else {
+      priceEl.textContent = `${modalPricing.price} ₽`;
+    }
+  }
   if (descEl) descEl.textContent = product.description || '';
 
   if (cartBtn) {
@@ -662,7 +720,7 @@ function renderProductModal(product) {
       cartBtn.textContent = 'В корзину';
       cartBtn.dataset.id = product._id || '';
       cartBtn.dataset.title = product.title || '';
-      cartBtn.dataset.price = String(parseInt(product.price, 10) || 0);
+      cartBtn.dataset.price = String(modalPricing.price);
     } else {
       cartBtn.disabled = true;
       cartBtn.textContent = 'Нет в наличии';
@@ -758,22 +816,36 @@ function renderProductGallery(media) {
     });
   }
 
-  // Touch events для свайпа
-  viewport.onclick = null;
+  // Touch events для свайпа. Снимаем прошлые слушатели перед навешиванием,
+  // иначе при каждом открытии модалки они накапливаются и один клик
+  // перелистывает сразу несколько слайдов.
+  if (viewport._galleryHandlers) {
+    const h = viewport._galleryHandlers;
+    viewport.removeEventListener('touchstart', h.start);
+    viewport.removeEventListener('touchmove', h.move);
+    viewport.removeEventListener('touchend', h.end);
+    viewport.removeEventListener('click', h.click);
+  }
+
+  const clickHandler = (e) => {
+    if (media.length > 1 && Math.abs(touchDeltaX) < 10) {
+      currentSlideIndex = (currentSlideIndex + 1) % media.length;
+      slidesContainer.style.transform = `translateX(-${currentSlideIndex * 100}%)`;
+      updateThumbs();
+    }
+  };
+
   viewport.addEventListener('touchstart', onGalleryTouchStart, { passive: true });
   viewport.addEventListener('touchmove', onGalleryTouchMove, { passive: true });
   viewport.addEventListener('touchend', onGalleryTouchEnd, { passive: true });
+  viewport.addEventListener('click', clickHandler);
 
-  // Клик на слайд = следующий (если больше 1)
-  if (media.length > 1) {
-    viewport.addEventListener('click', (e) => {
-      if (Math.abs(touchDeltaX) < 10) {
-        currentSlideIndex = (currentSlideIndex + 1) % media.length;
-        slidesContainer.style.transform = `translateX(-${currentSlideIndex * 100}%)`;
-        updateThumbs();
-      }
-    });
-  }
+  viewport._galleryHandlers = {
+    start: onGalleryTouchStart,
+    move: onGalleryTouchMove,
+    end: onGalleryTouchEnd,
+    click: clickHandler
+  };
 }
 
 let touchDeltaX = 0;

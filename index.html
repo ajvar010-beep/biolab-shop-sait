@@ -2,20 +2,24 @@
 <html>
 	<head>
 		<title>Биолаборатория — Магазин растений для школы</title>
-		<meta name="description" content="Интернет-магазин растений для школьной биолаборатории. Заказывайте растения, получайте по QR-коду в теплице." />
+		<meta name="description" content="Интернет-магазин растений для школьной биолаборатории. Заказывайте саженцы и растения, выращенные в собственной теплице." />
 		<meta name="keywords" content="биолаборатория, растения, школа, магазин растений, теплица, школьный проект, саженцы, комнатные растения" />
 		<meta name="robots" content="index, follow" />
 
 		<!-- Open Graph -->
 		<meta property="og:title" content="Биолаборатория — Магазин растений для школы" />
-		<meta property="og:description" content="Интернет-магазин растений для школьной биолаборатории. Заказывайте саженцы и получайте по QR-коду." />
+		<meta property="og:description" content="Интернет-магазин растений для школьной биолаборатории. Саженцы и растения из собственной теплицы." />
 		<meta property="og:type" content="website" />
-		<meta property="og:url" content="https://biolab.local" />
-		<meta property="og:image" content="https://biolab.local/images/og-image.png" />
+		<meta property="og:url" content="https://biolab-shop-sait.onrender.com/" />
+		<meta property="og:image" content="https://biolab-shop-sait.onrender.com/favicon.svg" />
 		<meta property="og:site_name" content="Биолаборатория" />
 
 		<!-- Favicon SVG -->
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+		<!-- PWA manifest — без него приложение неустановимо -->
+		<link rel="manifest" href="/manifest.json" />
+		<meta name="theme-color" content="#22c55e" />
 
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
@@ -91,7 +95,7 @@
                                 <div class="category-filters" id="categoryFilters">
                                     <button class="category-btn active" data-category="all">Все</button>
                                 </div>
-                                <div class="search-cart-row">
+                                <div class="search-cart-wrapper search-cart-row">
                                     <div class="search-wrapper">
                                         <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                             <circle cx="11" cy="11" r="8"></circle>
@@ -227,7 +231,7 @@
 
                         <div class="form-group">
                             <label for="customerPhone">Телефон *</label>
-                            <input type="tel" id="customerPhone" name="customerPhone" required maxlength="32" placeholder="+7 (999) 123-45-67">
+                            <input type="tel" id="customerPhone" name="customerPhone" required maxlength="20" placeholder="+7 (999) 123-45-67">
                         </div>
 
                         <!-- hCaptcha — защита от ботов -->

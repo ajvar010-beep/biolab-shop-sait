@@ -31,6 +31,11 @@ if (menu) {
   while (menu.firstChild) inner.appendChild(menu.firstChild);
   menu.appendChild(inner);
 
+  // Переносим меню прямо в <body>. Иначе оно остаётся внутри #wrapper, который
+  // при открытом меню получает pointer-events:none + opacity:0.25 — и пункты
+  // меню становятся некликабельными и полупрозрачными. (Поведение шаблона Phantom.)
+  document.body.appendChild(menu);
+
   function lockMenu() {
     if (menuLocked) return false;
     menuLocked = true;

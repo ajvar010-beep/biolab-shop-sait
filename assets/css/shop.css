@@ -94,6 +94,32 @@
     margin-left: 5px;
 }
 
+/* Скрытый бейдж корзины (0 товаров) — не ломаем display:flex */
+.cart-count.is-hidden {
+    display: none;
+}
+
+/* Цена со скидкой */
+.price-badge.on-sale {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    line-height: 1.1;
+}
+.price-old {
+    text-decoration: line-through;
+    opacity: 0.7;
+    font-size: 0.8em;
+    font-weight: 400;
+}
+.price-new {
+    color: #e74c3c;
+    font-weight: 800;
+}
+.product-modal-price .price-old {
+    margin-right: 8px;
+}
+
 /* Корзина */
 .cart-items {
     max-height: 400px;
@@ -1518,14 +1544,16 @@ html[data-theme="light"] body #wrapper #main .tiles article:hover {
         letter-spacing: 0.1em;
     }
 
-    /* Карточки товаров на всю ширину или 2 в ряд */
-    body #wrapper #main .tiles article {
-        width: calc(50% - 0.75em);
-        margin: 0.75em 0 0 0.75em;
-    }
-
+    /* Карточки 2 в ряд. .tiles — это grid (theme.css), поэтому ширину задаём
+       через grid-template-columns, а НЕ width:calc()+margin (в grid это ломает раскладку). */
     body #wrapper #main .tiles {
-        margin: -0.75em 0 0 -0.75em;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75em;
+        margin: 0;
+    }
+    body #wrapper #main .tiles article {
+        width: auto;
+        margin: 0;
     }
 
     /* Название товара короче */
