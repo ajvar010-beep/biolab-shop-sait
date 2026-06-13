@@ -1,13 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#fffbe8"/>
-      <stop offset="100%" stop-color="#f7e7ad"/>
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#fdf6dd"/>
     </linearGradient>
   </defs>
   <rect width="800" height="600" fill="url(#bg)"/>
-  <circle cx="130" cy="110" r="170" fill="#ffffff" opacity="0.35"/>
-  <circle cx="690" cy="510" r="230" fill="#ffffff" opacity="0.28"/>
-  <circle cx="660" cy="90" r="64" fill="#ffffff" opacity="0.40"/>
-  <text x="400" y="310" font-size="230" text-anchor="middle" dominant-baseline="middle">🌻</text>
+  <text x="400" y="305" font-size="240" text-anchor="middle" dominant-baseline="middle">🌻</text>
 </svg>
