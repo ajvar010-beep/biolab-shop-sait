@@ -11,8 +11,9 @@
     try { localStorage.setItem('siteFontSize', size); } catch (_) {}
   }
 
-  // Применяем сохранённые настройки до DOMContentLoaded, чтобы не было мерцания
-  try { setTheme(localStorage.getItem('siteTheme') || 'dark'); } catch (_) { setTheme('dark'); }
+  // Применяем сохранённые настройки до DOMContentLoaded, чтобы не было мерцания.
+  // Дефолт — светлая (ботаническая) тема.
+  try { setTheme(localStorage.getItem('siteTheme') || 'light'); } catch (_) { setTheme('light'); }
   try { setFontSize(localStorage.getItem('siteFontSize') || 'normal'); } catch (_) { setFontSize('normal'); }
 
   // Делегированные обработчики для переключателей.

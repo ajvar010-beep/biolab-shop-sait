@@ -1,0 +1,462 @@
+/* ============================================================================
+   botanical.css — «Светлый ботанический» дизайн Биолаборатории.
+   Грузится ПОСЛЕ main.css / theme.css / shop.css и переопределяет их.
+   Приём: переопределяем те же переменные, что уже использует theme.css
+   (--bg-color, --text-color, --heading-color, --card-bg), и добавляем
+   собственные токены + компонентные стили. JS-хуки не трогаем.
+   ============================================================================ */
+
+/* ===== 1. Токены палитры ===== */
+:root,
+:root[data-theme="light"] {
+  --bg-color: #faf8f3;          /* кремовый фон */
+  --text-color: #5b6b5e;        /* основной текст */
+  --heading-color: #2f3a32;     /* заголовки */
+  --card-bg: #ffffff;
+
+  --bg: #faf8f3;
+  --surface: #ffffff;
+  --ink: #2f3a32;
+  --ink-soft: #5b6b5e;
+  --muted: #93a08f;
+  --green: #4a7c59;
+  --green-dark: #3a6346;
+  --green-soft: #eaf2ec;
+  --accent: #c9742f;            /* тёплый терракот для акций/акцентов */
+  --line: #e9e3d6;
+  --radius-lg: 18px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
+  --shadow-sm: 0 2px 10px rgba(58, 75, 56, 0.06);
+  --shadow-md: 0 10px 28px rgba(58, 75, 56, 0.10);
+  --shadow-lg: 0 18px 44px rgba(58, 75, 56, 0.16);
+  --accent-color: #4a7c59;      /* используется в theme.css для футера */
+}
+
+/* Тёмная тема — оставляем переключатель рабочим и аккуратным */
+:root[data-theme="dark"] {
+  --bg-color: #141a16;
+  --text-color: #b6c2b7;
+  --heading-color: #f3f7f2;
+  --card-bg: #1d2521;
+
+  --bg: #141a16;
+  --surface: #1d2521;
+  --ink: #f3f7f2;
+  --ink-soft: #b6c2b7;
+  --muted: #8aa08f;
+  --green: #6fae7f;
+  --green-dark: #5b9a6b;
+  --green-soft: #24302a;
+  --accent: #e0954a;
+  --line: rgba(255, 255, 255, 0.10);
+  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.30);
+  --shadow-md: 0 10px 28px rgba(0, 0, 0, 0.40);
+  --shadow-lg: 0 18px 44px rgba(0, 0, 0, 0.50);
+  --accent-color: #6fae7f;
+}
+
+/* ===== 2. База ===== */
+html, body {
+  background: var(--bg) !important;
+}
+body {
+  color: var(--ink-soft);
+  font-family: 'Inter', -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Phantom рисовал диагональные линии-оверлеи поверх фона — убираем */
+#wrapper { background: transparent !important; }
+#wrapper > * { background-image: none; }
+
+/* Заголовки — сериф Fraunces, тёплый и «дорогой» */
+h1, h2, h3,
+#main > .inner > header h1 {
+  font-family: 'Fraunces Variable', 'Fraunces', Georgia, serif !important;
+  color: var(--ink);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* Ссылки — зелёные, без шаблонного розового !important hover */
+a { color: var(--green); }
+a:hover { color: var(--green-dark) !important; }
+
+/* ===== 3. Шапка ===== */
+body #wrapper > header#header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.82);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+  box-shadow: none;
+  padding: 14px 28px;
+  transition: box-shadow 0.3s, padding 0.3s;
+}
+:root[data-theme="dark"] body #wrapper > header#header {
+  background: rgba(20, 26, 22, 0.82);
+}
+body #wrapper > header#header.scrolled {
+  box-shadow: var(--shadow-sm);
+  padding: 10px 28px;
+}
+body #wrapper > header#header .logo .title {
+  font-family: 'Fraunces Variable', Georgia, serif;
+  color: var(--ink);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+body #wrapper > header#header .logo .symbol img { filter: none; }
+
+/* Кнопка-бургер */
+a[href="#menu"] {
+  color: var(--ink) !important;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.5em 1em;
+  background: var(--surface);
+  transition: background 0.2s, border-color 0.2s;
+}
+a[href="#menu"]:hover {
+  background: var(--green-soft);
+  border-color: var(--green);
+}
+
+/* ===== 4. Hero ===== */
+#main > .inner > header {
+  text-align: center;
+  max-width: 760px;
+  margin: 0 auto 10px;
+  padding: 48px 16px 8px;
+}
+#main > .inner > header h1 {
+  color: var(--ink) !important;
+  font-weight: 600;
+  font-size: clamp(30px, 5vw, 52px);
+  line-height: 1.1;
+  margin-bottom: 18px;
+}
+#main > .inner > header p {
+  color: var(--ink-soft);
+  font-size: 18px;
+  line-height: 1.6;
+  max-width: 620px;
+  margin: 0 auto 24px;
+}
+.hero-cta {
+  display: inline-block;
+  background: var(--green);
+  color: #fff !important;
+  font-weight: 600;
+  padding: 13px 30px;
+  border-radius: 999px;
+  text-decoration: none;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s, background 0.2s, box-shadow 0.2s;
+}
+.hero-cta:hover {
+  background: var(--green-dark);
+  color: #fff !important;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* ===== 5. Фильтры категорий ===== */
+.category-btn {
+  background: var(--surface);
+  color: var(--ink-soft);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 9px 18px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.category-btn:hover {
+  border-color: var(--green);
+  color: var(--green-dark);
+  background: var(--green-soft);
+}
+.category-btn.active {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+  box-shadow: var(--shadow-sm);
+}
+
+/* ===== 6. Поиск ===== */
+body #wrapper #main .inner #searchInput {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  border-radius: 999px;
+  box-shadow: var(--shadow-sm);
+}
+body #wrapper #main .inner #searchInput::placeholder { color: var(--muted); }
+body #wrapper #main .inner #searchInput:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 4px var(--green-soft);
+}
+body #wrapper #main .inner .search-icon { color: var(--muted); }
+
+.cart-btn {
+  background: var(--green);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 12px 22px;
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s, background 0.2s;
+}
+.cart-btn:hover { background: var(--green-dark); transform: translateY(-2px); }
+.cart-count {
+  background: #fff;
+  color: var(--green-dark);
+}
+
+/* ===== 7. Карточки товаров (фото сверху + контент снизу) ===== */
+body #wrapper #main .tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 26px;
+}
+body #wrapper #main .tiles article.product-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  min-height: 0;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+body #wrapper #main .tiles article.product-card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* медиа-область */
+.product-card__media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background-color: var(--green-soft);
+  background-size: cover;
+  background-position: center;
+}
+.product-card__media--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.product-card__leaf { font-size: 54px; opacity: 0.6; }
+
+/* контент */
+.product-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 18px 18px;
+  flex: 1;
+}
+.product-card__cat {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--green);
+}
+body #wrapper #main .tiles article.product-card .product-card__title {
+  font-family: 'Fraunces Variable', Georgia, serif;
+  color: var(--ink);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.2;
+  margin: 0;
+  text-shadow: none;
+}
+.product-card__price {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 2px;
+}
+.product-card__price .price-cur,
+.product-card__price .price-new {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.product-card__price .price-old {
+  font-size: 14px;
+  color: var(--muted);
+  text-decoration: line-through;
+}
+.product-card__body .add-to-cart-btn {
+  margin-top: auto;
+}
+
+/* бейджи в углу медиа */
+.product-card__media .stock-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  margin: 0;
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  backdrop-filter: blur(4px);
+}
+.product-card__media .stock-badge.in-stock {
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--green-dark);
+}
+.product-card__media .stock-badge.out-of-stock {
+  background: rgba(40, 40, 40, 0.78);
+  color: #fff;
+}
+.sale-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 5px 10px;
+  border-radius: 999px;
+  box-shadow: var(--shadow-sm);
+}
+
+/* ===== 8. Кнопки «в корзину» / отправки ===== */
+.add-to-cart-btn,
+.submit-btn,
+.checkout-btn {
+  background: var(--green);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 11px 18px;
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+}
+.add-to-cart-btn:hover:not(:disabled),
+.submit-btn:hover:not(:disabled),
+.checkout-btn:hover:not(:disabled) {
+  background: var(--green-dark);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+.add-to-cart-btn:disabled {
+  background: var(--line);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+/* ===== 9. Модалки — светлые поверхности ===== */
+.modal-content,
+.product-modal-content {
+  background: var(--surface) !important;
+  color: var(--ink-soft) !important;
+  border-radius: var(--radius-lg) !important;
+  border: 1px solid var(--line) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+.modal-content h2,
+.product-modal .product-info h2,
+.product-modal-title {
+  color: var(--ink) !important;
+}
+.product-modal-category { color: var(--green) !important; }
+.checkout-item { border-color: var(--line) !important; color: var(--ink-soft); }
+.checkout-total { color: var(--ink) !important; }
+
+.modal-content input,
+.modal-content textarea {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  border-radius: var(--radius-sm);
+}
+.modal-content input:focus,
+.modal-content textarea:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px var(--green-soft);
+  outline: none;
+}
+
+/* ===== 10. Подвал ===== */
+body #wrapper #footer {
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  margin-top: 60px;
+  padding: 40px 0;
+}
+body #wrapper #footer h2 {
+  font-family: 'Fraunces Variable', Georgia, serif;
+  color: var(--ink);
+}
+body #wrapper #footer p,
+body #wrapper #footer a,
+body #wrapper #footer li,
+body #wrapper #footer strong { color: var(--ink-soft); }
+.social-link {
+  background: var(--green-soft);
+  border: 1px solid var(--line);
+  color: var(--green-dark);
+}
+.social-link:hover { background: var(--green); border-color: var(--green); }
+
+/* ===== 11. Меню (off-canvas) ===== */
+body #wrapper #menu,
+:root[data-theme="light"] body #wrapper #menu {
+  background: var(--surface);
+  color: var(--ink);
+}
+#menu h2 {
+  font-family: 'Fraunces Variable', Georgia, serif;
+  color: var(--ink);
+}
+#menu a, #menu .close,
+:root[data-theme="light"] body #wrapper #menu a {
+  color: var(--ink-soft);
+  border-bottom-color: var(--line);
+}
+#menu a:hover { color: var(--green) !important; }
+
+/* ===== 12. Тосты ===== */
+.notification {
+  background: var(--ink);
+  color: #fff;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+}
+
+/* ===== 13. Адаптив ===== */
+@media screen and (max-width: 736px) {
+  body #wrapper #main .tiles {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+  body #wrapper > header#header { padding: 12px 16px; }
+  #main > .inner > header { padding: 32px 12px 4px; }
+  .product-card__body { padding: 12px 13px 14px; }
+  body #wrapper #main .tiles article.product-card .product-card__title { font-size: 16px; }
+  .product-card__price .price-cur,
+  .product-card__price .price-new { font-size: 17px; }
+}
+
+@media screen and (max-width: 480px) {
+  body #wrapper #main .tiles { grid-template-columns: 1fr; }
+}

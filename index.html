@@ -40,10 +40,13 @@
         <!-- Колбэки hCaptcha (скрывают виджет и разблокируют кнопку, пока капча не настроена) -->
         <script src="assets/js/hcaptcha-callbacks.js"></script>
 
-        <!-- Inter font через jsDelivr (работает в РФ) -->
+        <!-- Inter (текст) + Fraunces (заголовки-сериф) через jsDelivr (работает в РФ) -->
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@4.5.15/400.css">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@4.5.15/600.css">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@4.5.15/800.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/fraunces/index.css">
+        <!-- Ботанический дизайн — грузится последним, переопределяет шаблон -->
+        <link rel="stylesheet" href="assets/css/botanical.css" />
 	<link rel="canonical" href="https://biolab-shop-sait.onrender.com/" />
 	</head>
 	<body class="is-preload">
@@ -79,21 +82,22 @@
 
                         <h2>Настройки темы</h2>
                         <ul>
-                            <li><a href="#" data-theme-set="dark">⚫ Тёмная (Базовая)</a></li>
-                            <li><a href="#" data-theme-set="light">⚪ Светлая</a></li>
+                            <li><a href="#" data-theme-set="light">🌿 Светлая (Базовая)</a></li>
+                            <li><a href="#" data-theme-set="dark">🌙 Тёмная</a></li>
                         </ul>
 					</nav>
 
 					<div id="main">
 						<div class="inner">
 							<header>
-								<h1>Добро пожаловать в проектную<br />
-								биолабораторию нашей школы.</h1>
-								<p>Здесь мы публикуем результаты наших экспериментов, отчеты о выращивании растений в теплице и исследовательские проекты по биологии. Следите за обновлениями!</p>
+								<h1>Растения из нашей<br />
+								школьной теплицы.</h1>
+								<p>Здесь мы публикуем результаты экспериментов, отчёты о выращивании растений и продаём саженцы, выращенные своими руками.</p>
+								<a href="#catalog" class="hero-cta">Смотреть каталог</a>
 							</header>
 
                             <!-- ФИЛЬТРЫ И ПОИСК -->
-                            <div class="shop-controls">
+                            <div class="shop-controls" id="catalog">
                                 <div class="category-filters" id="categoryFilters">
                                     <button class="category-btn active" data-category="all">Все</button>
                                 </div>

@@ -357,24 +357,16 @@ function renderProducts(products) {
     const price = pricing.price;
     const stock = parseInt(product.stock, 10) || 0;
 
-    // Безопасные URL
+    // Безопасный URL картинки
     let imgUrl = '';
     if (typeof product.imageUrl === 'string' && product.imageUrl) {
       imgUrl = product.imageUrl.startsWith('http')
         ? safeUrl(product.imageUrl)
         : safeUrl(`${apiBase}${product.imageUrl}`);
     }
-    const modelUrl = product.modelUrl ? safeUrl(product.modelUrl) : '';
-
-    // Caption для Fancybox — текст-only, чтобы не пробовать инжектить HTML
-    const captionLines = [title];
-    if (description) captionLines.push('', description);
-    captionLines.push('', pricing.onSale ? `Цена: ${price} ₽ (было ${pricing.oldPrice} ₽)` : `Цена: ${price} ₽`);
-    captionLines.push(stock > 0 ? `В наличии: ${stock} шт.` : 'Нет в наличии');
-    const captionText = captionLines.join('\n');
 
     const article = el('article', {
-      className: sizeClass,
+      className: ('product-card ' + sizeClass).trim(),
       attrs: {
         'data-search': (title + ' ' + description + ' ' + category).toLowerCase(),
         'data-product-id': String(product._id || ''),
@@ -382,59 +374,41 @@ function renderProducts(products) {
       }
     });
 
-    // Фон карточки
-    const bg = el('span', { className: 'image' });
-    bg.style.cssText = 'display:block;position:absolute;top:0;left:0;width:100%;height:100%;z-index:0;background-size:cover;background-position:center;';
-    if (imgUrl) bg.style.backgroundImage = `url("${safeCssUrl(imgUrl)}")`;
-    article.appendChild(bg);
-
-    // Overlay для клика (без Fancybox)
-    const overlay = el('div', {
-      style: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        zIndex: '1',
-        cursor: 'pointer'
-      }
-    });
-
-    overlay.appendChild(el('h2', { text: title }));
-    const content = el('div', { className: 'content' });
-    if (description) {
-      const lines = description.split(/\r\n|\r|\n/);
-      const p = document.createElement('p');
-      lines.forEach((line, i) => {
-        if (i > 0) p.appendChild(document.createElement('br'));
-        p.appendChild(document.createTextNode(line));
-      });
-      content.appendChild(p);
-    }
-    overlay.appendChild(content);
-    article.appendChild(overlay);
-
-    // Бейдж наличия
-    const stockBadge = document.createElement('div');
-    stockBadge.className = `stock-badge ${stock > 0 ? 'in-stock' : 'out-of-stock'}`;
-    stockBadge.textContent = stock > 0 ? `В наличии: ${stock} шт.` : 'Нет в наличии';
-    article.appendChild(stockBadge);
-
-    // Бейдж с ценой (со скидкой — старая цена зачёркнута)
-    if (pricing.onSale) {
-      const priceBadge = el('div', { className: 'price-badge on-sale' },
-        el('span', { className: 'price-old', text: `${pricing.oldPrice} ₽` }),
-        el('span', { className: 'price-new', text: `${price} ₽` })
-      );
-      article.appendChild(priceBadge);
+    // ── Медиа (фото сверху) ──
+    const media = el('div', { className: 'product-card__media' });
+    if (imgUrl) {
+      media.style.backgroundImage = `url("${safeCssUrl(imgUrl)}")`;
     } else {
-      article.appendChild(el('div', { className: 'price-badge', text: `${price} ₽` }));
+      media.classList.add('product-card__media--empty');
+      media.appendChild(el('span', { className: 'product-card__leaf', text: '🌿' }));
     }
+    // бейдж наличия (угол)
+    media.appendChild(el('span', {
+      className: `stock-badge ${stock > 0 ? 'in-stock' : 'out-of-stock'}`,
+      text: stock > 0 ? `В наличии: ${stock} шт.` : 'Нет в наличии'
+    }));
+    // бейдж скидки
+    if (pricing.onSale && pricing.oldPrice) {
+      const off = Math.round((1 - price / pricing.oldPrice) * 100);
+      media.appendChild(el('span', { className: 'sale-badge', text: `-${off}%` }));
+    }
+    article.appendChild(media);
 
-    // Кнопка "В корзину"
-    const btnWrap = el('div');
-    btnWrap.style.cssText = 'position:absolute;bottom:20px;left:20px;right:20px;z-index:2;';
+    // ── Контент (снизу) ──
+    const body = el('div', { className: 'product-card__body' });
+    if (category) body.appendChild(el('span', { className: 'product-card__cat', text: category }));
+    body.appendChild(el('h2', { className: 'product-card__title', text: title }));
+
+    const priceRow = el('div', { className: 'product-card__price' });
+    if (pricing.onSale && pricing.oldPrice) {
+      priceRow.appendChild(el('span', { className: 'price-old', text: `${pricing.oldPrice} ₽` }));
+      priceRow.appendChild(el('span', { className: 'price-new', text: `${price} ₽` }));
+    } else {
+      priceRow.appendChild(el('span', { className: 'price-cur', text: `${price} ₽` }));
+    }
+    body.appendChild(priceRow);
+
+    // Кнопка "В корзину" (data-action сохранён для делегата)
     let cartBtn;
     if (stock > 0) {
       cartBtn = el('button', {
@@ -450,32 +424,14 @@ function renderProducts(products) {
     } else {
       cartBtn = el('button', { className: 'add-to-cart-btn', text: 'Нет в наличии' });
       cartBtn.disabled = true;
-      cartBtn.style.cssText = 'opacity:0.5;cursor:not-allowed;';
     }
-    btnWrap.appendChild(cartBtn);
-    article.appendChild(btnWrap);
+    body.appendChild(cartBtn);
 
-    // 3D-модель — собираем элементами, src ставим через setAttribute (без HTML-парсинга)
-    if (modelUrl) {
-      const modelContainer = el('div', { id: `model-${modelCounter}`, className: 'model-container' });
-      const mv = document.createElement('model-viewer');
-      mv.setAttribute('src', modelUrl);
-      mv.setAttribute('auto-rotate', '');
-      mv.setAttribute('camera-controls', '');
-      mv.setAttribute('shadow-intensity', '1');
-      mv.setAttribute('ar', '');
-      mv.setAttribute('ar-modes', 'webxr scene-viewer quick-look');
-      modelContainer.appendChild(mv);
-      article.appendChild(modelContainer);
-    }
-
+    article.appendChild(body);
     tilesContainer.appendChild(article);
   });
 
-  // Снимаем шаблонные обработчики Fancybox с карточек
-
-
-  // Отключаем Fancybox для карточек (открываем свою модалку)
+  // Fancybox для карточек не используем — открываем свою модалку
   if (typeof Fancybox !== 'undefined') Fancybox.destroy();
 }
 
