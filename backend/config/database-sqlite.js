@@ -78,6 +78,16 @@ class SQLiteDB {
 
   // ===== Обёртки =====
 
+  // Привести JS-значение к виду, пригодному для SQLite-параметра.
+  // null/undefined — первыми (typeof null === 'object'), иначе null станет строкой 'null'.
+  _serialize(v) {
+    if (v === null || v === undefined) return null;
+    if (v instanceof Date) return v.toISOString();
+    if (typeof v === 'object') return JSON.stringify(v);
+    if (typeof v === 'boolean') return v ? 1 : 0;
+    return v;
+  }
+
   // SQLite использует одно соединение, поэтому клиент не нужен — совместимость API
   async beginTransaction() {
     this.db.exec('BEGIN TRANSACTION');
@@ -89,16 +99,31 @@ class SQLiteDB {
   }
 
   async rollback(client) {
-    this.db.exec('ROLLBACK');
+    // Толерантно: если транзакция уже не активна, SQLite бросит — гасим, чтобы не маскировать исходную ошибку
+    try { this.db.exec('ROLLBACK'); } catch (_) {}
+  }
+
+  // Паритет API с PG-адаптером (в SQLite клиент не нужен — одно соединение)
+  transactionQuery(client, sql, params = []) {
+    return this.run(sql, params);
+  }
+
+  // Атомарное уменьшение остатка с проверкой наличия (одним запросом).
+  async decrementStock(productId, qty, client = null) {
+    const stmt = this.db.prepare('UPDATE products SET stock = stock - ? WHERE _id = ? AND stock >= ?');
+    const result = stmt.run(qty, productId, qty);
+    return { changes: result.changes };
+  }
+
+  async incrementStock(productId, qty, client = null) {
+    const stmt = this.db.prepare('UPDATE products SET stock = stock + ? WHERE _id = ?');
+    const result = stmt.run(qty, productId);
+    return { changes: result.changes };
   }
 
   async insert(collection, doc, client = null) {
     const fields = Object.keys(doc);
-    const values = Object.values(doc).map(v => {
-      if (typeof v === 'object') return JSON.stringify(v);
-      if (v === undefined) return null;
-      return v;
-    });
+    const values = Object.values(doc).map(v => this._serialize(v));
 
     const table = this.sanitizeTableName(collection);
     const placeholders = fields.map(() => '?').join(', ');
@@ -136,11 +161,7 @@ class SQLiteDB {
     const filterConditions = Object.keys(filter).map(k => `${this.sanitizeFieldName(k)} = ?`).join(' AND ');
     const filterValues = Object.values(filter);
     const setClause = Object.keys(update).map(k => `${this.sanitizeFieldName(k)} = ?`).join(', ');
-    const setValues = Object.keys(update).map(k => {
-      if (typeof update[k] === 'object') return JSON.stringify(update[k]);
-      if (update[k] === undefined) return null;
-      return update[k];
-    });
+    const setValues = Object.keys(update).map(k => this._serialize(update[k]));
 
     try {
       const stmt = this.db.prepare(`UPDATE ${table} SET ${setClause} WHERE ${filterConditions}`);

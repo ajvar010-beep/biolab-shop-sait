@@ -10,8 +10,11 @@ const { S3Client, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/cl
 // Тип хранилища: 'local' или 's3'
 const STORAGE_TYPE = process.env.STORAGE_TYPE || 'local';
 
-// Путь к папке для локального хранения
-const UPLOADS_DIR = path.join(__dirname, '..', 'uploads');
+// Путь к папке для локального хранения.
+// ВАЖНО: должен совпадать с тем, что раздаёт server.js (корень репозитория /uploads),
+// иначе загруженные файлы сохранятся, но по своему URL вернут 404 / index.html.
+// __dirname = backend/services → поднимаемся на два уровня в корень проекта.
+const UPLOADS_DIR = path.join(__dirname, '..', '..', 'uploads');
 
 /**
  * Базовый класс хранилища

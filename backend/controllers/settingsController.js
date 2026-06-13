@@ -137,21 +137,31 @@ exports.updateSettings = async (req, res) => {
       return res.status(400).json({ message: errors.join('; ') });
     }
 
-    // Сохраняем
-    current.updatedAt = new Date().toISOString();
-    current.socials = JSON.stringify(current.socials);
+    // Сохраняем ТОЛЬКО whitelist-поля.
+    // Нельзя передавать всю строку current из БД: после parseRow (PG) она могла бы
+    // содержать дублирующие ключи и stale-поля → "multiple assignments to same column".
+    const socialsJson = JSON.stringify(Array.isArray(current.socials) ? current.socials : []);
+    const update = {
+      email: current.email,
+      phone: current.phone,
+      address: current.address,
+      workingHours: current.workingHours,
+      socials: socialsJson,
+      aboutText: current.aboutText,
+      updatedAt: new Date().toISOString()
+    };
 
-    await db.updateOne('settings', { _id: 'main' }, current);
+    await db.updateOne('settings', { _id: 'main' }, update);
 
     res.json({
       message: 'Настройки сохранены',
       settings: {
-        email: current.email,
-        phone: current.phone,
-        address: current.address,
-        workingHours: current.workingHours,
-        socials: typeof current.socials === 'string' ? JSON.parse(current.socials) : current.socials,
-        aboutText: current.aboutText
+        email: update.email,
+        phone: update.phone,
+        address: update.address,
+        workingHours: update.workingHours,
+        socials: JSON.parse(socialsJson),
+        aboutText: update.aboutText
       }
     });
   } catch (error) {

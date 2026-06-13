@@ -19,6 +19,10 @@ function assertEnv() {
   const errors = [];
   if (!process.env.JWT_SECRET) errors.push('JWT_SECRET не задан');
   else if (process.env.JWT_SECRET.length < 16) errors.push('JWT_SECRET слишком короткий (минимум 16 символов)');
+  // На проде пароль админа обязателен — без хардкод-фолбэка
+  if (process.env.NODE_ENV === 'production' && !process.env.ADMIN_PASSWORD) {
+    errors.push('ADMIN_PASSWORD не задан (обязателен в production)');
+  }
   if (errors.length) {
     console.error('❌ Ошибки конфигурации:');
     errors.forEach((e) => console.error('   -', e));
@@ -28,6 +32,13 @@ function assertEnv() {
 assertEnv();
 
 const app = express();
+
+// За обратным прокси Render/любого PaaS: доверяем первому проксирующему хопу,
+// чтобы req.ip был реальным IP клиента (из X-Forwarded-For), а не адресом
+// балансировщика. Без этого ВСЕ rate-лимитеры считают всех под одним IP.
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
 
 // ===== Конфигурация базы данных =====
 const DATA_DIR = path.resolve(__dirname, '..', 'data');
@@ -39,10 +50,16 @@ const DB_PATH = process.env.SQLITE_DB_PATH
 
 const dbType = process.env.DATABASE_URL ? 'postgres' : 'sqlite';
 
-// Создаём админа по умолчанию (идемпотентно). Логин/пароль — из env с фолбэком.
+// Создаём админа по умолчанию (идемпотентно). Пароль — ТОЛЬКО из env.
+// В dev допускаем фолбэк для удобства; в production assertEnv уже гарантировал ADMIN_PASSWORD.
 async function initAdmin() {
   const username = process.env.ADMIN_USERNAME || 'admin';
-  const password = process.env.ADMIN_PASSWORD || 'AdminDemo2026';
+  const password = process.env.ADMIN_PASSWORD
+    || (process.env.NODE_ENV === 'production' ? null : 'AdminDemo2026');
+  if (!password) {
+    console.warn('⚠️ ADMIN_PASSWORD не задан — админ по умолчанию не создан');
+    return;
+  }
   try {
     const created = await authController.createDefaultAdmin(username, password);
     console.log(created ? `✅ Админ создан: ${username}` : 'ℹ️ Админ уже существует');
@@ -94,13 +111,24 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS || '*')
   .map((s) => s.trim())
   .filter(Boolean);
 
+// В production со credentials:true рефлексия любого Origin ('*') опасна.
+// Если ALLOWED_ORIGINS не задан на проде — предупреждаем и запрещаем кросс-оригин.
+const wildcardCors = allowedOrigins.includes('*');
+if (wildcardCors && process.env.NODE_ENV === 'production') {
+  console.warn('⚠️ ALLOWED_ORIGINS не задан в production — кросс-оригин запросы будут отклоняться');
+}
+
 const corsOptions = {
   origin(origin, callback) {
     if (!origin) return callback(null, true);
     if (process.env.NODE_ENV !== 'production' && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
       return callback(null, true);
     }
-    if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+    // '*' уважаем только вне production
+    if (wildcardCors && process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+    if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
     callback(new Error('Не разрешено CORS политикой'));
@@ -211,9 +239,9 @@ app.use('/api/orders', require('./routes/orders'));
 app.use('/api/categories', require('./routes/categories'));
 app.use('/api/settings', require('./routes/settings'));
 
-// Health-check
+// Health-check — без раскрытия версии/типа БД наружу
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', version: '1.3.0', database: dbType });
+  res.json({ status: 'ok' });
 });
 
 // 404 для API
@@ -221,8 +249,14 @@ app.use('/api', (req, res) => {
   res.status(404).json({ message: 'Endpoint не найден' });
 });
 
-// SPA-fallback — для всех GET-запросов, не начинающихся с /api/
-app.get('*', (req, res) => {
+// SPA-fallback — отдаём index.html только для «страничных» маршрутов.
+// Запросы с расширением файла (.css/.js/.png/.svg/.map …) — это ассеты;
+// если они не нашлись в express.static выше, это 404, а НЕ index.html.
+// Иначе клиент (и Service Worker) получает 200 + HTML под URL ассета и кэширует мусор.
+app.get('*', (req, res, next) => {
+  if (/\.[a-zA-Z0-9]{1,8}$/.test(req.path)) {
+    return res.status(404).type('text/plain').send('Not found');
+  }
   res.sendFile(path.join(ROOT, 'index.html'));
 });
 
@@ -263,11 +297,14 @@ async function bootstrap() {
     console.log(`🗄️ База данных: ${dbType}`);
   });
 
-  // Graceful shutdown
+  // Graceful shutdown: сначала перестаём принимать запросы, ПОТОМ закрываем пул БД,
+  // иначе запросы в полёте получат 500 из-за закрытого пула при каждом деплое.
   function shutdown(signal) {
     console.log(`\n${signal} получен, останавливаемся...`);
-    db.close();
-    server.close(() => process.exit(0));
+    server.close(async () => {
+      try { await db.close(); } catch (_) {}
+      process.exit(0);
+    });
     setTimeout(() => process.exit(1), 10000).unref();
   }
   process.on('SIGTERM', () => shutdown('SIGTERM'));

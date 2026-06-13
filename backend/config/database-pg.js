@@ -73,12 +73,37 @@ class PostgresDB {
     }
   }
 
+  // Привести JS-значение к виду, пригодному для pg-параметра.
+  // ВАЖНО: null/undefined проверяются ПЕРВЫМИ — typeof null === 'object',
+  // иначе null уходит в БД как строка 'null' и ломает числовые/timestamp-колонки.
+  _serialize(v) {
+    if (v === null || v === undefined) return null;
+    if (v instanceof Date) return v.toISOString();
+    if (typeof v === 'object') return JSON.stringify(v);
+    return v;
+  }
+
+  // Освободить клиент в пул ровно один раз (защита от двойного release,
+  // когда после неудачного commit вызывается rollback на том же клиенте).
+  _safeRelease(client) {
+    if (client && !client._biolabReleased) {
+      client._biolabReleased = true;
+      client.release();
+    }
+  }
+
   // ===== Транзакции (выделенный клиент) =====
 
   // Начать транзакцию — возвращает клиент, который нужно использовать для запросов внутри транзакции
   async beginTransaction() {
     const client = await this.pool.connect();
-    await client.query('BEGIN');
+    try {
+      await client.query('BEGIN');
+    } catch (err) {
+      // Если BEGIN упал — обязательно вернуть клиент в пул, иначе утечка соединения
+      this._safeRelease(client);
+      throw err;
+    }
     return client;
   }
 
@@ -87,16 +112,22 @@ class PostgresDB {
     try {
       await client.query('COMMIT');
     } finally {
-      client.release();
+      this._safeRelease(client);
     }
   }
 
-  // Откатить транзакцию
+  // Откатить транзакцию. Толерантна к ошибкам и к уже освобождённому клиенту,
+  // чтобы не маскировать исходную ошибку из catch-блока контроллера.
   async rollback(client) {
+    if (!client) return;
     try {
-      await client.query('ROLLBACK');
+      if (!client._biolabReleased) {
+        await client.query('ROLLBACK');
+      }
+    } catch (err) {
+      console.error('[PostgreSQL] Rollback error:', err.message);
     } finally {
-      client.release();
+      this._safeRelease(client);
     }
   }
 
@@ -105,14 +136,31 @@ class PostgresDB {
     return client.query(sql, params);
   }
 
+  // Атомарно уменьшить остаток с проверкой наличия в одном запросе.
+  // Возвращает {changes}: 0 — если товара не хватило (защита от перепродажи при гонке).
+  async decrementStock(productId, qty, client = null) {
+    const executor = client || this.pool;
+    const result = await executor.query(
+      'UPDATE products SET stock = stock - $1 WHERE _id = $2 AND stock >= $1',
+      [qty, productId]
+    );
+    return { changes: result.rowCount };
+  }
+
+  // Атомарно вернуть остаток на склад (откат заказа).
+  async incrementStock(productId, qty, client = null) {
+    const executor = client || this.pool;
+    const result = await executor.query(
+      'UPDATE products SET stock = stock + $1 WHERE _id = $2',
+      [qty, productId]
+    );
+    return { changes: result.rowCount };
+  }
+
   // Вставить документ
   async insert(collection, doc, client = null) {
     const fields = Object.keys(doc);
-    const values = Object.values(doc).map(v => {
-      if (typeof v === 'object') return JSON.stringify(v);
-      if (v === undefined) return null;
-      return v;
-    });
+    const values = Object.values(doc).map(v => this._serialize(v));
 
     const table = this.sanitizeTableName(collection);
     const placeholders = values.map((_, i) => `$${i + 1}`).join(', ');
@@ -163,11 +211,7 @@ class PostgresDB {
 
     const updateKeys = Object.keys(update);
     const setClause = updateKeys.map((k, i) => `${this.sanitizeFieldName(k)} = $${filterKeys.length + i + 1}`).join(', ');
-    const setValues = updateKeys.map(k => {
-      if (typeof update[k] === 'object') return JSON.stringify(update[k]);
-      if (update[k] === undefined) return null;
-      return update[k];
-    });
+    const setValues = updateKeys.map(k => this._serialize(update[k]));
 
     try {
       const executor = client || this.pool;
@@ -243,9 +287,14 @@ class PostgresDB {
       tokenversion: 'tokenVersion'
     };
 
+    // Маппим lowercase → camelCase и УДАЛЯЕМ исходный lowercase-ключ.
+    // Иначе строка содержит оба ключа (workinghours + workingHours), и если
+    // её целиком передать обратно в updateOne, PG свернёт неэкранированные
+    // имена в одну колонку → ошибка 42601 "multiple assignments to same column".
     for (const [lower, camel] of Object.entries(fieldMap)) {
-      if (parsed[lower] !== undefined && parsed[camel] === undefined) {
-        parsed[camel] = parsed[lower];
+      if (parsed[lower] !== undefined) {
+        if (parsed[camel] === undefined) parsed[camel] = parsed[lower];
+        delete parsed[lower];
       }
     }
 
@@ -279,16 +328,23 @@ class PostgresDB {
     return name;
   }
 
-  // Выполнить миграцию (для migrator)
+  // Выполнить миграцию (для migrator). Если задан _migrationClient —
+  // выполняем на нём, чтобы вся миграция шла в одной транзакции.
   async runMigration(sql) {
-    await this.pool.query(sql);
+    const executor = this._migrationClient || this.pool;
+    await executor.query(sql);
   }
 
-  // Закрыть соединение
-  close() {
+  // Закрыть пул. Ждём завершения активных запросов (pool.end() возвращает промис).
+  async close() {
     if (this.pool) {
-      this.pool.end();
+      const pool = this.pool;
       this.pool = null;
+      try {
+        await pool.end();
+      } catch (err) {
+        console.error('[PostgreSQL] Ошибка закрытия пула:', err.message);
+      }
     }
   }
 }

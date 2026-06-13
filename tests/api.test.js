@@ -14,9 +14,8 @@ describe('Basic API Endpoints', () => {
         .get('/api/health')
         .expect(200);
 
+      // Health не раскрывает version/тип БД наружу — только статус
       expect(response.body).toHaveProperty('status', 'ok');
-      expect(response.body).toHaveProperty('version');
-      expect(response.body).toHaveProperty('database', 'sqlite');
     });
   });
 

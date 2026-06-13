@@ -53,9 +53,9 @@ function csrfCheck(req, res, next) {
     return res.status(403).json({ message: 'CSRF token mismatch' });
   }
 
-  // Ротируем токен
-  const newToken = generateToken();
-  setCsrfHeaders(res, newToken);
+  // НЕ ротируем токен на каждой мутации: клиент не перечитывает новый токен из
+  // ответа, поэтому ротация ломала каждую вторую операцию (cookie обновлён, а в
+  // localStorage/заголовке старый → mismatch). Double-submit и без ротации валиден.
   next();
 }
 

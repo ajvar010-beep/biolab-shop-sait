@@ -59,10 +59,16 @@ exports.createCategory = async (req, res) => {
       }
     }
 
-    // Проверяем дубликаты
-    const existing = await db.findOne('categories', { name: trimmedName });
-    if (existing) {
-      return res.status(400).json({ message: 'Категория с таким названием уже существует' });
+    // Проверяем дубликаты без учёта регистра ("Семена" и "семена" — одно и то же),
+    // т.к. витрина фильтрует категории нечувствительно к регистру.
+    const all = await db.find('categories');
+    const lowerName = trimmedName.toLowerCase();
+    const dup = all.find(c =>
+      String(c.name || '').toLowerCase() === lowerName ||
+      String(c.slug || '').toLowerCase() === finalSlug
+    );
+    if (dup) {
+      return res.status(400).json({ message: 'Категория с таким названием или slug уже существует' });
     }
 
     const id = 'cat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);

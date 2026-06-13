@@ -86,15 +86,16 @@ exports.createOrder = async (req, res) => {
           return res.status(400).json({ message: `Товар не найден: ${productId}` });
         }
 
-        if (product.stock < quantity) {
+        // Атомарное списание: UPDATE ... WHERE stock >= qty в одном запросе.
+        // Если двух параллельных заказов хватило бы суммарно на overselling —
+        // второй получит changes:0 и заказ корректно отклонится (без перепродажи).
+        const dec = await db.decrementStock(productId, quantity, tx);
+        if (!dec.changes) {
           await db.rollback(tx);
           return res.status(400).json({
             message: `Недостаточно товара "${product.title}" (в наличии: ${product.stock})`
           });
         }
-
-        // Уменьшаем остаток внутри транзакции
-        await db.updateOne('products', { _id: productId }, { stock: product.stock - quantity }, tx);
 
         orderItems.push({
           productId: product._id,
@@ -295,17 +296,22 @@ exports.completeOrder = async (req, res) => {
       return res.status(400).json({ message: 'Заказ нельзя выдать (уже выдан, отменён или не найден)' });
     }
 
-    // Выдача заказа — атомарная операция в транзакции
+    // Выдача заказа — атомарная операция в транзакции.
+    // Фильтр включает status:'pending' — это попадает в WHERE, поэтому при гонке
+    // двойного клика второй UPDATE не затронет строк (modified:0) и мы отклоним.
     const tx = await db.beginTransaction();
 
     try {
       const now = new Date().toISOString();
-      await db.updateOne('orders', { _id: order._id }, {
-        status: 'completed',
-        completedAt: now,
-        updatedAt: now
-      }, tx);
-
+      const upd = await db.updateOne('orders',
+        { _id: order._id, status: 'pending' },
+        { status: 'completed', completedAt: now, updatedAt: now },
+        tx
+      );
+      if (!upd.modified) {
+        await db.rollback(tx);
+        return res.status(400).json({ message: 'Заказ уже обработан' });
+      }
       await db.commit(tx);
     } catch (error) {
       await db.rollback(tx);
@@ -342,31 +348,34 @@ exports.cancelOrder = async (req, res) => {
       return res.status(400).json({ message: 'Заказ нельзя отменить (уже выдан, отменён или не найден)' });
     }
 
-    // Отмена заказа — атомарная операция в транзакции
+    // Отмена заказа — атомарная операция в транзакции.
     const tx = await db.beginTransaction();
 
     try {
-      // Возвращаем товары на склад
+      // Сначала «забираем» заказ атомарной сменой статуса (claim).
+      // status:'pending' в фильтре → WHERE; при двойной отмене второй вызов
+      // получит modified:0 и не вернёт товары на склад повторно.
+      const now = new Date().toISOString();
+      const claimed = await db.updateOne('orders',
+        { _id: order._id, status: 'pending' },
+        { status: 'cancelled', cancelledAt: now, cancelReason: reason, updatedAt: now },
+        tx
+      );
+      if (!claimed.modified) {
+        await db.rollback(tx);
+        return res.status(400).json({ message: 'Заказ уже обработан' });
+      }
+
+      // Только после успешного claim возвращаем товары на склад (атомарный инкремент)
       const items = order.items && typeof order.items === 'string'
         ? JSON.parse(order.items)
         : (order.items || []);
 
       for (const item of items) {
-        const product = await db.findOne('products', { _id: item.productId }, tx);
-        if (product) {
-          await db.updateOne('products', { _id: item.productId }, {
-            stock: product.stock + item.quantity
-          }, tx);
+        if (item && item.productId && Number.isFinite(Number(item.quantity))) {
+          await db.incrementStock(item.productId, Number(item.quantity), tx);
         }
       }
-
-      const now = new Date().toISOString();
-      await db.updateOne('orders', { _id: order._id }, {
-        status: 'cancelled',
-        cancelledAt: now,
-        cancelReason: reason,
-        updatedAt: now
-      }, tx);
 
       await db.commit(tx);
     } catch (error) {

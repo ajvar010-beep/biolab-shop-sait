@@ -8,7 +8,8 @@ const { hcaptchaMiddleware } = require('../middleware/hcaptcha');
 // Публичные маршруты
 router.post('/', orderLimiter, hcaptchaMiddleware, orderController.createOrder);
 router.get('/code/:orderCode', orderLookupLimiter, orderController.getOrderByCode);
-router.get('/phone/:phone', orderLookupLimiter, orderController.getOrdersByPhone);
+// Поиск заказов по телефону — только для админа (PII: иначе любой перебирал бы чужие заказы)
+router.get('/phone/:phone', authMiddleware, orderController.getOrdersByPhone);
 
 // Защищённые (только админ)
 router.get('/', authMiddleware, orderController.getAllOrders);
