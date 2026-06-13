@@ -2,14 +2,16 @@
  * Service Worker для Biolab Shop
  * Cache-first для статики, network-first для API
  */
-const CACHE_NAME = 'biolab-v2';
-const STATIC_CACHE = 'biolab-static-v2';
+const CACHE_NAME = 'biolab-v3';
+const STATIC_CACHE = 'biolab-static-v3';
 const OFFLINE_URL = '/offline.html';
 
-// Файлы для кэширования при установке
+// Файлы для кэширования при установке.
+// offline.html обязателен — иначе HTML-fallback в офлайне отдаёт пустоту.
 const PRECACHE_URLS = [
   '/',
   '/index.html',
+  '/offline.html',
   '/manifest.json',
   '/favicon.svg',
   '/icon-192.svg',
@@ -32,20 +34,20 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Активация — очищаем старые кэши
+// Активация — очищаем ТОЛЬКО устаревшие кэши.
+// Оставляем оба актуальных (STATIC_CACHE и CACHE_NAME), иначе при апдейте SW
+// мы бы стирали собственный рантайм-кэш HTML-страниц.
 self.addEventListener('activate', (event) => {
+  const keep = [STATIC_CACHE, CACHE_NAME];
   event.waitUntil(
     caches.keys()
-      .then(keys => {
-        return Promise.all(
-          keys
-            .filter(key => key !== STATIC_CACHE)
+      .then(keys => Promise.all(
+        keys.filter(key => !keep.includes(key))
             .map(key => {
               console.log('[SW] Удаляем старый кэш:', key);
               return caches.delete(key);
             })
-        );
-      })
+      ))
       .then(() => self.clients.claim())
   );
 });
@@ -54,9 +56,11 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Пропускаем не-GET и внешние запросы
+  // Пропускаем не-GET и внешние запросы.
+  // Сравниваем origin строго (== self.location.origin), а не подстрокой:
+  // includes() пропускал бы чужой домен вида "biolab-shop-sait.onrender.com.evil.com".
   if (event.request.method !== 'GET') return;
-  if (!url.origin.includes(self.location.host)) return;
+  if (url.origin !== self.location.origin) return;
 
   // API-запросы — network-first
   if (url.pathname.startsWith('/api/')) {
@@ -86,16 +90,18 @@ self.addEventListener('fetch', (event) => {
     url.pathname.endsWith('.png') ||
     url.pathname.endsWith('.jpg')
   ) {
+    // stale-while-revalidate: мгновенно отдаём из кэша, но в фоне обновляем,
+    // чтобы после деплоя статика с тем же именем не залипала навсегда.
     event.respondWith(
       caches.match(event.request).then(cached => {
-        if (cached) return cached;
-        return fetch(event.request).then(response => {
+        const network = fetch(event.request).then(response => {
           if (response.ok) {
             const clone = response.clone();
             caches.open(STATIC_CACHE).then(cache => cache.put(event.request, clone));
           }
           return response;
-        });
+        }).catch(() => cached);
+        return cached || network;
       })
     );
     return;

@@ -18,6 +18,15 @@ const MAX_BACKUPS = parseInt(process.env.BACKUP_KEEP || '30', 10);
 function log(msg) { console.log(`[${new Date().toISOString().replace('T', ' ').slice(0, 19)}] ${msg}`); }
 
 (async () => {
+  // PostgreSQL (Neon) на проде бэкапится на стороне провайдера (PITR/снапшоты).
+  // Файловый бэкап тут только для локальной SQLite.
+  if (process.env.DATABASE_URL) {
+    console.log('ℹ️  DATABASE_URL задан — используется PostgreSQL.');
+    console.log('   Бэкап делается на стороне провайдера (Neon: snapshots / point-in-time restore),');
+    console.log('   либо через pg_dump "$DATABASE_URL". Файловый бэкап SQLite здесь не нужен.');
+    process.exit(0);
+  }
+
   // Проверяем что база существует
   if (!fs.existsSync(DB_PATH)) {
     console.error('❌ База данных не найдена:', DB_PATH);
@@ -34,8 +43,18 @@ function log(msg) { console.log(`[${new Date().toISOString().replace('T', ' ').s
   const backupName = `biolab-${timestamp}.db`;
   const backupPath = path.join(BACKUP_DIR, backupName);
 
-  // Копируем файл
-  fs.copyFileSync(DB_PATH, backupPath);
+  // Используем .backup() из better-sqlite3 — консистентный снимок с учётом WAL
+  // (простой copyFileSync терял бы незаписанные из WAL последние транзакции).
+  try {
+    const Database = require('better-sqlite3');
+    const src = new Database(DB_PATH, { readonly: true });
+    await src.backup(backupPath);
+    src.close();
+  } catch (err) {
+    // Фолбэк: если better-sqlite3 недоступен — чекпойнт WAL и копия
+    console.warn('[Backup] .backup() недоступен, копируем файл:', err.message);
+    fs.copyFileSync(DB_PATH, backupPath);
+  }
   const sizeKB = Math.round(fs.statSync(backupPath).size / 1024);
   console.log(`✅ Бэкап создан: ${backupName} (${sizeKB} KB)`);
 

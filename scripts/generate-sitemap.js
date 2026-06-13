@@ -18,12 +18,12 @@ function escapeXml(str) {
     .replace(/'/g, '&apos;');
 }
 
-function generateSitemap() {
+async function generateSitemap() {
   console.log('[Sitemap] Генерация sitemap.xml...');
 
-  // Получаем все товары
-  const products = db.find('products');
-  const categories = db.find('categories');
+  // Получаем все товары (методы адаптера асинхронные)
+  const products = await db.find('products');
+  const categories = await db.find('categories');
 
   const now = new Date().toISOString().split('T')[0];
 
@@ -77,14 +77,17 @@ function generateSitemap() {
 }
 
 if (require.main === module) {
-  try {
-    db.init(path.join(__dirname, '..', 'data', 'biolab.db'));
-    generateSitemap();
-    db.close();
-  } catch (error) {
-    console.error('[Sitemap] ❌ Ошибка:', error.message);
-    process.exit(1);
-  }
+  (async () => {
+    try {
+      db.init(path.join(__dirname, '..', 'data', 'biolab.db'));
+      if (db.runMigrations) await db.runMigrations();
+      await generateSitemap();
+      await db.close();
+    } catch (error) {
+      console.error('[Sitemap] ❌ Ошибка:', error.message);
+      process.exit(1);
+    }
+  })();
 }
 
 module.exports = { generateSitemap };

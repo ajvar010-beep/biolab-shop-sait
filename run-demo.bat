@@ -59,7 +59,8 @@ REM ===== 5. Port check =====
 netstat -ano | findstr ":3000 " | findstr "LISTENING" >nul
 if not errorlevel 1 (
     echo [ERROR] Port 3000 is busy.
-    echo Run stop-demo.bat or close the process on port 3000, then retry.
+    echo Close the process using port 3000, then retry.
+    echo Find it with:  netstat -ano ^| findstr ":3000 "
     pause
     exit /b 1
 )

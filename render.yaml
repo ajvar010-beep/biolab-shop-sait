@@ -23,3 +23,8 @@ services:
         value: admin
       - key: ADMIN_PASSWORD
         generateValue: true
+      # DATABASE_URL задаётся вручную в дашборде (строка подключения Neon).
+      # sync:false — не генерируется блюпринтом и не стирается при обновлении.
+      # Без него сервер молча уйдёт на эфемерный SQLite и потеряет данные при рестарте.
+      - key: DATABASE_URL
+        sync: false

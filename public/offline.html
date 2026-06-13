@@ -8,15 +8,16 @@
     .container { padding: 40px; }
     h1 { color: #2ed573; font-size: 2rem; margin-bottom: 16px; }
     p { font-size: 1.1rem; margin-bottom: 24px; }
-    button { background: #2ed573; color: #1a1b1e; border: none; padding: 12px 32px; font-size: 1rem; font-weight: 600; border-radius: 4px; cursor: pointer; }
-    button:hover { background: #26be65; }
+    .btn { display: inline-block; background: #2ed573; color: #1a1b1e; text-decoration: none; border: none; padding: 12px 32px; font-size: 1rem; font-weight: 600; border-radius: 4px; cursor: pointer; }
+    .btn:hover { background: #26be65; }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Нет соединения</h1>
     <p>Проверьте интернет-подключение и попробуйте снова.</p>
-    <button onclick="location.reload()">Обновить</button>
+    <!-- Ссылка вместо button onclick: CSP запрещает инлайн-обработчики (scriptSrcAttr 'none') -->
+    <a class="btn" href="/">Обновить</a>
   </div>
 </body>
 </html>

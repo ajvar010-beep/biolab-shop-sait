@@ -12,7 +12,6 @@
     "dev": "nodemon backend/server.js",
     "audit": "npm audit",
     "backup": "node scripts/backup.js",
-    "logs": "tail -f logs/error.log",
     "sitemap": "node scripts/generate-sitemap.js",
     "test": "cross-env NODE_ENV=test jest --coverage",
     "test:watch": "cross-env NODE_ENV=test jest --watch"
@@ -36,9 +35,7 @@
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
-    "nodemailer": "^8.0.9",
-    "pg": "^8.21.0",
-    "qrcode": "^1.5.4"
+    "pg": "^8.21.0"
   },
   "devDependencies": {
     "cross-env": "^10.1.0",

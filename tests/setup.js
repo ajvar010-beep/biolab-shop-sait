@@ -275,11 +275,24 @@ beforeAll(async () => {
     return row ? row.count : 0;
   };
 
-  db.beginTransaction = () => { testDb.exec('BEGIN TRANSACTION'); };
-  db.commit = () => { testDb.exec('COMMIT'); };
-  db.rollback = () => { testDb.exec('ROLLBACK'); };
+  db.beginTransaction = () => { testDb.exec('BEGIN TRANSACTION'); return null; };
+  db.commit = () => { try { testDb.exec('COMMIT'); } catch (_) {} };
+  db.rollback = () => { try { testDb.exec('ROLLBACK'); } catch (_) {} };
+  db.transactionQuery = (client, sql, params = []) => db.run(sql, params);
   db.runMigration = (sql) => { testDb.exec(sql); };
   db.close = () => { /* Не закрываем in-memory БД */ };
+
+  // Атомарные операции с остатком (зеркало адаптеров)
+  db.decrementStock = (productId, qty) => {
+    const stmt = testDb.prepare('UPDATE products SET stock = stock - ? WHERE _id = ? AND stock >= ?');
+    const result = stmt.run(qty, productId, qty);
+    return { changes: result.changes };
+  };
+  db.incrementStock = (productId, qty) => {
+    const stmt = testDb.prepare('UPDATE products SET stock = stock + ? WHERE _id = ?');
+    const result = stmt.run(qty, productId);
+    return { changes: result.changes };
+  };
 
   // Создаём тестовые данные
   await createTestFixtures();

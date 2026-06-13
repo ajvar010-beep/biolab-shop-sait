@@ -1,9 +1,26 @@
 node_modules
 .git
 .env
-data/*.db
+.env.*
+!.env.example
+
+# Базы данных и их WAL/SHM — не тащим в образ
+data/
+*.db
+*.db-wal
+*.db-shm
+
+# Загрузки пользователей и логи
 uploads/*
-logs/*.log
+!uploads/.gitkeep
+logs/*
 *.log
+
+# Локальные инструменты и артефакты
+tools/
+coverage/
+render-env-vars.txt
+
+# Системное
 .DS_Store
 Thumbs.db

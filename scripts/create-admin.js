@@ -1,13 +1,14 @@
 /**
  * Скрипт создания администратора Biolab.
- * Запускать через create-admin.ps1 — он передаёт credentials через env vars.
+ * Работает с активной БД через общий адаптер (SQLite локально или PostgreSQL по DATABASE_URL).
+ * Credentials передаются через env: BIOLAB_ADMIN_USERNAME / BIOLAB_ADMIN_PASSWORD.
  */
 require('dotenv').config({ path: require('path').resolve(__dirname, '..', '.env') });
 const path = require('path');
 const bcrypt = require('bcrypt');
-const initSqlJs = require('sql.js');
 const crypto = require('crypto');
 const fs = require('fs');
+const db = require('../backend/config/database');
 
 const DATA_DIR = path.resolve(__dirname, '..', 'data');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -40,35 +41,33 @@ const passErr = validatePassword(password);
 if (passErr) { console.error('❌', passErr); process.exit(1); }
 
 (async () => {
-  const SQL = await initSqlJs();
-  let db;
+  try {
+    db.init(DB_PATH);
+    if (db.runMigrations) await db.runMigrations();
 
-  if (fs.existsSync(DB_PATH)) {
-    db = new SQL.Database(fs.readFileSync(DB_PATH));
-  } else {
-    console.error('❌ База данных не найдена. Запустите сервер хотя бы раз.');
+    const existing = await db.findOne('users', { username: username.trim() });
+    if (existing) {
+      console.log('ℹ️  Админ уже существует:', username);
+      await db.close();
+      process.exit(0);
+    }
+
+    const hashed = await bcrypt.hash(password, BCRYPT_ROUNDS);
+    const id = 'admin_' + crypto.randomUUID().replace(/-/g, '').slice(0, 16);
+
+    await db.insert('users', {
+      _id: id,
+      username: username.trim(),
+      password: hashed,
+      role: 'admin',
+      tokenVersion: 0
+    });
+
+    await db.close();
+    console.log('✅ Админ создан:', username);
+    console.log('   ID:', id);
+  } catch (error) {
+    console.error('❌ Ошибка:', error.message);
     process.exit(1);
   }
-
-  const existing = db.exec(`SELECT * FROM users WHERE username = '${username.trim().replace(/'/g, "''")}'`);
-  if (existing.length > 0 && existing[0].values.length > 0) {
-    console.log('ℹ️  Админ уже существует:', username);
-    db.close();
-    process.exit(0);
-  }
-
-  const hashed = await bcrypt.hash(password, BCRYPT_ROUNDS);
-  const id = 'admin_' + crypto.randomUUID().replace(/-/g, '').slice(0, 16);
-  const now = new Date().toISOString();
-
-  db.run(
-    `INSERT INTO users (_id, username, password, role, tokenVersion, createdAt) VALUES (?, ?, ?, ?, ?, ?)`,
-    [id, username.trim(), hashed, 'admin', 0, now]
-  );
-
-  fs.writeFileSync(DB_PATH, db.export());
-  db.close();
-
-  console.log('✅ Админ создан:', username);
-  console.log('   ID:', id);
 })();
