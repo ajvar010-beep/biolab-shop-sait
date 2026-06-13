@@ -443,20 +443,135 @@ body #wrapper #menu,
   box-shadow: var(--shadow-lg);
 }
 
-/* ===== 13. Адаптив ===== */
-@media screen and (max-width: 736px) {
+/* ============================================================================
+   13. МОБИЛЬНАЯ ОПТИМИЗАЦИЯ
+   ============================================================================ */
+
+/* Нет горизонтальной прокрутки на телефоне (частый баг).
+   overflow-x: clip вместо hidden — не делает body скролл-контейнером и не ломает sticky-шапку. */
+html, body { max-width: 100%; overflow-x: clip; }
+img, svg, model-viewer { max-width: 100%; }
+
+@media screen and (max-width: 760px) {
+  /* ── Шапка ── */
+  body #wrapper > header#header { padding: 11px 16px; }
+  body #wrapper > header#header .logo .title { font-size: 17px; letter-spacing: 0; }
+  body #wrapper > header#header .logo .symbol img { width: 26px; height: 26px; }
+  /* Бургер — крупный тач-таргет */
+  a[href="#menu"] {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 12px;
+  }
+
+  /* ── Hero ── */
+  #main > .inner > header { padding: 28px 14px 6px; }
+  #main > .inner > header h1 { font-size: clamp(26px, 8vw, 36px); margin-bottom: 12px; }
+  #main > .inner > header p { font-size: 15px; line-height: 1.5; }
+
+  /* ── Фильтры категорий: горизонтальная лента вместо переноса в 3 ряда ── */
+  .category-filters,
+  #categoryFilters {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+    gap: 8px;
+    padding-bottom: 4px;
+    margin: 0 -16px 14px;
+    padding-left: 16px;
+    padding-right: 16px;
+    scrollbar-width: none;
+  }
+  .category-filters::-webkit-scrollbar,
+  #categoryFilters::-webkit-scrollbar { display: none; }
+  .category-btn {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+    padding: 9px 16px;
+    font-size: 13px;
+  }
+
+  /* ── Поиск + корзина: в столбик, во всю ширину ── */
+  .search-cart-wrapper { flex-direction: column; gap: 10px; align-items: stretch; }
+  .search-wrapper { width: 100%; }
+  .cart-btn { width: 100%; justify-content: center; min-height: 48px; }
+  body #wrapper #main .inner #searchInput { font-size: 16px; min-height: 48px; }
+
+  /* ── Сетка карточек: 2 в ряд даже на узких экранах ── */
   body #wrapper #main .tiles {
     grid-template-columns: repeat(2, 1fr);
-    gap: 14px;
+    gap: 12px;
+    margin: 0;
   }
-  body #wrapper > header#header { padding: 12px 16px; }
-  #main > .inner > header { padding: 32px 12px 4px; }
-  .product-card__body { padding: 12px 13px 14px; }
-  body #wrapper #main .tiles article.product-card .product-card__title { font-size: 16px; }
+  /* Сброс старых flex-ширин из shop.css (width:calc(50%)/100% ломают grid) */
+  body #wrapper #main .tiles article.product-card {
+    width: auto;
+    margin: 0;
+    min-height: 0;
+  }
+  .product-card__media { aspect-ratio: 1 / 1; }
+  .product-card__body { padding: 11px 12px 13px; gap: 6px; }
+  .product-card__cat { font-size: 10px; }
+  body #wrapper #main .tiles article.product-card .product-card__title { font-size: 15px; line-height: 1.15; }
   .product-card__price .price-cur,
-  .product-card__price .price-new { font-size: 17px; }
+  .product-card__price .price-new { font-size: 16px; }
+  .product-card__price .price-old { font-size: 12px; }
+  .product-card__media .stock-badge { font-size: 10px; padding: 4px 8px; top: 8px; left: 8px; }
+  .sale-badge { font-size: 10px; padding: 4px 8px; top: 8px; right: 8px; }
+  /* Кнопка — удобный тач-таргет */
+  .product-card__body .add-to-cart-btn { min-height: 42px; width: 100%; }
+
+  /* Карточки size-wide/large на телефоне — обычные (не растягиваем) */
+  body #wrapper #main .tiles .size-wide,
+  body #wrapper #main .tiles .size-large {
+    grid-column: span 1;
+    grid-row: span 1;
+  }
+
+  /* ── Модалки (корзина/оформление/успех) как «нижний лист» ── */
+  .modal { align-items: flex-end !important; }
+  .modal-content {
+    max-width: 100% !important;
+    width: 100% !important;
+    max-height: 92vh !important;
+    margin: 0 !important;
+    border-radius: 20px 20px 0 0 !important;
+    overflow-y: auto;
+  }
+  .modal-close,
+  .product-modal-close,
+  .modal-header .close-modal {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  /* Поля форм — 16px, чтобы iOS не зумил при фокусе */
+  .modal-content input,
+  .modal-content textarea,
+  .modal-content select { font-size: 16px; }
+  .submit-btn, .checkout-btn { width: 100%; min-height: 48px; }
+
+  /* ── Подвал: один столбец, по центру ── */
+  body #wrapper #footer .inner { grid-template-columns: 1fr; text-align: center; gap: 22px; }
+  .contacts-list li, .socials-list { justify-content: center; }
+
+  /* ── Тост: снизу по центру ── */
+  .notification {
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    text-align: center;
+  }
 }
 
-@media screen and (max-width: 480px) {
-  body #wrapper #main .tiles { grid-template-columns: 1fr; }
+/* Очень узкие телефоны */
+@media screen and (max-width: 360px) {
+  body #wrapper #main .tiles { gap: 9px; }
+  .product-card__body { padding: 10px 10px 12px; }
+  body #wrapper #main .tiles article.product-card .product-card__title { font-size: 14px; }
 }
+
