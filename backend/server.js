@@ -19,14 +19,16 @@ function assertEnv() {
   const errors = [];
   if (!process.env.JWT_SECRET) errors.push('JWT_SECRET не задан');
   else if (process.env.JWT_SECRET.length < 16) errors.push('JWT_SECRET слишком короткий (минимум 16 символов)');
-  // На проде пароль админа обязателен — без хардкод-фолбэка
-  if (process.env.NODE_ENV === 'production' && !process.env.ADMIN_PASSWORD) {
-    errors.push('ADMIN_PASSWORD не задан (обязателен в production)');
-  }
   if (errors.length) {
     console.error('❌ Ошибки конфигурации:');
     errors.forEach((e) => console.error('   -', e));
     process.exit(1);
+  }
+  // ADMIN_PASSWORD не делаем обязательным для старта: его отсутствие не должно
+  // ронять весь сайт. Если он не задан в production — просто не создаём дефолтного
+  // админа (см. initAdmin). Существующий админ в БД продолжает работать.
+  if (process.env.NODE_ENV === 'production' && !process.env.ADMIN_PASSWORD) {
+    console.warn('⚠️ ADMIN_PASSWORD не задан — дефолтный админ не будет создан (существующий в БД работает)');
   }
 }
 assertEnv();
