@@ -276,6 +276,108 @@ function populateCategoryFilters(products) {
   });
 }
 
+// ===== Умный поиск: опечатки, раскладка, транслит, английский =====
+
+// Раскладка ЙЦУКЕН ↔ QWERTY (по физическим клавишам)
+const RU_LAYOUT = {
+  q:'й',w:'ц',e:'у',r:'к',t:'е',y:'н',u:'г',i:'ш',o:'щ',p:'з','[':'х',']':'ъ',
+  a:'ф',s:'ы',d:'в',f:'а',g:'п',h:'р',j:'о',k:'л',l:'д',';':'ж',"'":'э',
+  z:'я',x:'ч',c:'с',v:'м',b:'и',n:'т',m:'ь',',':'б','.':'ю'
+};
+const EN_LAYOUT = {};
+for (const [en, ru] of Object.entries(RU_LAYOUT)) EN_LAYOUT[ru] = en;
+
+function enLayoutToRu(s) { return s.replace(/[a-z;'\[\],.]/gi, ch => RU_LAYOUT[ch.toLowerCase()] || ch); }
+function ruLayoutToEn(s) { return s.replace(/[а-яё]/gi, ch => EN_LAYOUT[ch.toLowerCase()] || ch); }
+
+// Транслитерация кириллица → латиница (для нормализации обеих сторон)
+const TRANSLIT = {
+  'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'e','ж':'zh','з':'z','и':'i',
+  'й':'y','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r','с':'s','т':'t',
+  'у':'u','ф':'f','х':'h','ц':'c','ч':'ch','ш':'sh','щ':'sch','ъ':'','ы':'y','ь':'',
+  'э':'e','ю':'yu','я':'ya'
+};
+function translit(s) { return s.split('').map(c => (TRANSLIT[c] !== undefined ? TRANSLIT[c] : c)).join(''); }
+
+// Нормализация: lowercase → транслит → только [a-z0-9]
+function normSearch(s) { return translit(String(s || '').toLowerCase()).replace(/[^a-z0-9]+/g, ''); }
+
+// Словарь синонимов/перевода (домен: растения и категории)
+const SEARCH_SYNONYMS = {
+  flower:'цветы', flowers:'цветы', bloom:'цветы',
+  vegetable:'овощи', vegetables:'овощи', veggie:'овощи', veggies:'овощи',
+  green:'зелень', greens:'зелень', herb:'зелень', herbs:'зелень', greenery:'зелень',
+  seedling:'рассада', seedlings:'рассада', sprout:'рассада', sprouts:'рассада',
+  shrub:'кустарники', shrubs:'кустарники', bush:'кустарники', bushes:'кустарники',
+  tree:'деревья', trees:'деревья',
+  seed:'семена', seeds:'семена',
+  dill:'укроп', basil:'базилик', tomato:'помидор', tomatoes:'помидор',
+  cucumber:'огурец', cucumbers:'огурец', pepper:'перец', peppers:'перец',
+  sunflower:'подсолнух', chamomile:'ромашка', daisy:'ромашка',
+  violet:'фиалка', hydrangea:'гортензия', apple:'яблоня', appletree:'яблоня'
+};
+function translateWords(s) {
+  return s.toLowerCase().split(/\s+/).map(w => SEARCH_SYNONYMS[w] || w).join(' ');
+}
+
+// Расстояние Левенштейна (для опечаток), с отсечкой по длине
+function levenshtein(a, b) {
+  const m = a.length, n = b.length;
+  if (Math.abs(m - n) > 2) return 3;
+  const dp = Array.from({ length: m + 1 }, (_, i) => i);
+  for (let j = 1; j <= n; j++) {
+    let prev = dp[0];
+    dp[0] = j;
+    for (let i = 1; i <= m; i++) {
+      const tmp = dp[i];
+      dp[i] = Math.min(dp[i] + 1, dp[i - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1));
+      prev = tmp;
+    }
+  }
+  return dp[m];
+}
+
+// Главный матчер: терпим к опечаткам, раскладке, транслиту, английскому
+function smartMatch(rawQuery, product) {
+  const q0 = String(rawQuery || '').trim().toLowerCase();
+  if (!q0) return true;
+
+  // Варианты запроса: как есть, смена раскладки в обе стороны, перевод EN→RU
+  const variants = new Set([
+    q0,
+    enLayoutToRu(q0),
+    ruLayoutToEn(q0),
+    translateWords(q0),
+    translateWords(enLayoutToRu(q0))
+  ]);
+
+  // Нормализуем варианты в токены (латиница)
+  const queryTokens = [];
+  for (const v of variants) {
+    for (const w of v.split(/\s+/)) {
+      const nw = normSearch(w);
+      if (nw) queryTokens.push(nw);
+    }
+  }
+  if (!queryTokens.length) return true;
+
+  const rawHay = `${product.title || ''} ${product.description || ''} ${product.category || ''}`;
+  const hayFull = normSearch(rawHay);
+  const hayWords = rawHay.toLowerCase().split(/\s+/).map(normSearch).filter(Boolean);
+
+  return queryTokens.some(qt => {
+    if (qt.length < 2) return hayFull.includes(qt);
+    if (hayFull.includes(qt)) return true; // точное вхождение (с учётом транслита)
+    // Нечёткое: опечатки в пределах допуска по словам
+    const tol = qt.length <= 4 ? 1 : 2;
+    return hayWords.some(hw => {
+      if (hw.includes(qt) || qt.includes(hw)) return true;
+      if (Math.abs(hw.length - qt.length) > tol) return false;
+      return levenshtein(qt, hw) <= tol;
+    });
+  });
+}
+
 // Фильтрация
 function filterProducts() {
   let filtered = allProducts;
@@ -287,17 +389,9 @@ function filterProducts() {
     );
   }
 
-  // По поиску
-  const q = activeSearch.toLowerCase().trim();
-  if (q) {
-    filtered = filtered.filter(p => {
-      const text = (
-        String(p.title || '') + ' ' +
-        String(p.description || '') + ' ' +
-        String(p.category || '')
-      ).toLowerCase();
-      return text.includes(q);
-    });
+  // По поиску (умный матчер)
+  if (activeSearch.trim()) {
+    filtered = filtered.filter(p => smartMatch(activeSearch, p));
   }
 
   renderProducts(filtered);
