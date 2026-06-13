@@ -205,13 +205,17 @@ class PostgresDB {
   // Обновить документ
   async updateOne(collection, filter, update, client = null) {
     const table = this.sanitizeTableName(collection);
-    const filterKeys = Object.keys(filter);
-    const filterConditions = filterKeys.map((k, i) => `${this.sanitizeFieldName(k)} = $${i + 1}`).join(' AND ');
-    const filterValues = Object.values(filter);
 
+    // ВАЖНО: порядок параметров — [...setValues, ...filterValues], поэтому
+    // SET нумеруем ПЕРВЫМ ($1..), а WHERE — следующими номерами. Иначе значения
+    // SET и WHERE меняются местами (id уходит в timestamp-колонку → ошибка на PG).
     const updateKeys = Object.keys(update);
-    const setClause = updateKeys.map((k, i) => `${this.sanitizeFieldName(k)} = $${filterKeys.length + i + 1}`).join(', ');
+    const setClause = updateKeys.map((k, i) => `${this.sanitizeFieldName(k)} = $${i + 1}`).join(', ');
     const setValues = updateKeys.map(k => this._serialize(update[k]));
+
+    const filterKeys = Object.keys(filter);
+    const filterConditions = filterKeys.map((k, i) => `${this.sanitizeFieldName(k)} = $${updateKeys.length + i + 1}`).join(' AND ');
+    const filterValues = Object.values(filter);
 
     try {
       const executor = client || this.pool;
