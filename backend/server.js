@@ -199,6 +199,12 @@ app.use('/api/settings', (req, res, next) => {
   return adminLimiter(req, res, next);
 });
 
+// Автоперевод поиска — публичный, лимитируем (ходит во внешний сервис)
+const searchLimiter = process.env.NODE_ENV === 'test'
+  ? (req, res, next) => next()
+  : createRateLimiter(60 * 1000, 60, 'Слишком много запросов поиска. Попробуйте позже');
+app.use('/api/search', searchLimiter);
+
 // ===== Статика =====
 const ROOT = path.resolve(__dirname, '..');
 
@@ -240,6 +246,7 @@ app.use('/api/products', require('./routes/products'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/categories', require('./routes/categories'));
 app.use('/api/settings', require('./routes/settings'));
+app.use('/api/search', require('./routes/search'));
 
 // Health-check — без раскрытия версии/типа БД наружу
 app.get('/api/health', (req, res) => {

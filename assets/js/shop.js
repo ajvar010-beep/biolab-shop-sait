@@ -222,6 +222,8 @@ function showNotification(message) {
 let allProducts = []; // Храним все товары для фильтрации
 let activeCategory = 'all';
 let activeSearch = '';
+let activeTranslation = '';          // перевод текущего запроса на русский (от API)
+const translationCache = new Map();  // кэш переводов: запрос → русский
 
 async function loadProducts() {
   try {
@@ -302,24 +304,6 @@ function translit(s) { return s.split('').map(c => (TRANSLIT[c] !== undefined ? 
 // Нормализация: lowercase → транслит → только [a-z0-9]
 function normSearch(s) { return translit(String(s || '').toLowerCase()).replace(/[^a-z0-9]+/g, ''); }
 
-// Словарь синонимов/перевода (домен: растения и категории)
-const SEARCH_SYNONYMS = {
-  flower:'цветы', flowers:'цветы', bloom:'цветы',
-  vegetable:'овощи', vegetables:'овощи', veggie:'овощи', veggies:'овощи',
-  green:'зелень', greens:'зелень', herb:'зелень', herbs:'зелень', greenery:'зелень',
-  seedling:'рассада', seedlings:'рассада', sprout:'рассада', sprouts:'рассада',
-  shrub:'кустарники', shrubs:'кустарники', bush:'кустарники', bushes:'кустарники',
-  tree:'деревья', trees:'деревья',
-  seed:'семена', seeds:'семена',
-  dill:'укроп', basil:'базилик', tomato:'помидор', tomatoes:'помидор',
-  cucumber:'огурец', cucumbers:'огурец', pepper:'перец', peppers:'перец',
-  sunflower:'подсолнух', chamomile:'ромашка', daisy:'ромашка',
-  violet:'фиалка', hydrangea:'гортензия', apple:'яблоня', appletree:'яблоня'
-};
-function translateWords(s) {
-  return s.toLowerCase().split(/\s+/).map(w => SEARCH_SYNONYMS[w] || w).join(' ');
-}
-
 // Расстояние Левенштейна (для опечаток), с отсечкой по длине
 function levenshtein(a, b) {
   const m = a.length, n = b.length;
@@ -337,19 +321,23 @@ function levenshtein(a, b) {
   return dp[m];
 }
 
-// Главный матчер: терпим к опечаткам, раскладке, транслиту, английскому
-function smartMatch(rawQuery, product) {
+// Главный матчер: терпим к опечаткам, раскладке, транслиту, любому языку.
+// translated — перевод запроса на русский от /api/search/translate (опционально).
+function smartMatch(rawQuery, translated, product) {
   const q0 = String(rawQuery || '').trim().toLowerCase();
   if (!q0) return true;
 
-  // Варианты запроса: как есть, смена раскладки в обе стороны, перевод EN→RU
+  // Варианты запроса: как есть, смена раскладки в обе стороны, автоперевод
   const variants = new Set([
     q0,
     enLayoutToRu(q0),
-    ruLayoutToEn(q0),
-    translateWords(q0),
-    translateWords(enLayoutToRu(q0))
+    ruLayoutToEn(q0)
   ]);
+  if (translated && translated.trim()) {
+    const t = translated.trim().toLowerCase();
+    variants.add(t);
+    variants.add(enLayoutToRu(t));
+  }
 
   // Нормализуем варианты в токены (латиница)
   const queryTokens = [];
@@ -391,7 +379,7 @@ function filterProducts() {
 
   // По поиску (умный матчер)
   if (activeSearch.trim()) {
-    filtered = filtered.filter(p => smartMatch(activeSearch, p));
+    filtered = filtered.filter(p => smartMatch(activeSearch, activeTranslation, p));
   }
 
   renderProducts(filtered);
@@ -990,12 +978,44 @@ function setupCardClicks() {
   });
 }
 
+// Фоновый автоперевод запроса на русский (любой язык → русский, без словаря).
+// Локальный поиск (опечатки/раскладка/транслит) работает мгновенно и без сети;
+// перевод лишь добирает результаты для иностранных слов, когда придёт ответ.
+async function ensureTranslation(query) {
+  const q = String(query || '').trim();
+  if (q.length < 2) return;
+  // Кириллицу переводить незачем — это уже русский
+  if (!/[a-z]/i.test(q)) return;
+
+  const key = q.toLowerCase();
+  if (translationCache.has(key)) {
+    if (activeSearch.trim().toLowerCase() === key) activeTranslation = translationCache.get(key);
+    return;
+  }
+  try {
+    const res = await fetch(`${API_URL}/search/translate?q=${encodeURIComponent(q)}`);
+    const data = await res.json().catch(() => ({}));
+    const text = data && typeof data.text === 'string' ? data.text : '';
+    translationCache.set(key, text);
+    // Применяем только если пользователь всё ещё ищет то же самое
+    if (activeSearch.trim().toLowerCase() === key && text) {
+      activeTranslation = text;
+      filterProducts();
+    }
+  } catch (_) { /* офлайн/ошибка — остаётся локальный поиск */ }
+}
+
 function setupSearch() {
   const searchInput = document.getElementById('searchInput');
   if (!searchInput) return;
+  let translateTimer = null;
   searchInput.addEventListener('input', function () {
     activeSearch = this.value;
-    filterProducts();
+    const key = activeSearch.trim().toLowerCase();
+    activeTranslation = translationCache.get(key) || '';
+    filterProducts();                 // мгновенно: локальный умный поиск
+    clearTimeout(translateTimer);
+    translateTimer = setTimeout(() => ensureTranslation(activeSearch), 350); // фоном: автоперевод
   });
 }
 
