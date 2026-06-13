@@ -31,11 +31,17 @@
 
     const STATUS_TEXT = { pending: 'Ожидает', completed: 'Выдан', cancelled: 'Отменён' };
 
+    let ordersTruncated = false;
+
     async function loadOrders() {
         try {
             const response = await apiRequest('/orders?limit=500');
             const data = await response.json();
             orders = Array.isArray(data) ? data : (data.orders || []);
+            // Сервер отдаёт максимум 500. Если всего заказов больше — честно говорим,
+            // что список обрезан (иначе старые заказы молча не видны).
+            const total = (data && typeof data.total === 'number') ? data.total : orders.length;
+            ordersTruncated = total > orders.length;
             orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
             filterAndDisplay();
         } catch (error) {
@@ -104,7 +110,8 @@
                 el('td', { text: formatDateTime(order.createdAt) }),
                 el('td', { text: order.customerName || '' }),
                 el('td', { text: order.customerPhone || '' }),
-                el('td', { text: `${(order.items || []).length} шт.` }),
+                // Сумма штук по всем позициям, а не число позиций
+                el('td', { text: `${(order.items || []).reduce((s, it) => s + (Number(it.quantity) || 0), 0)} шт.` }),
                 el('td', {}, [el('strong', { text: `${order.totalAmount || 0} ₽` })]),
                 el('td', {}, [
                     el('span', { class: `badge badge-${order.status}`, text: STATUS_TEXT[order.status] || order.status })
@@ -116,6 +123,14 @@
         table.appendChild(thead);
         table.appendChild(tbody);
         ordersContainer.appendChild(el('div', { class: 'table-container' }, [table]));
+
+        if (ordersTruncated) {
+            ordersContainer.appendChild(el('div', {
+                class: 'error-message',
+                style: { marginTop: '12px' },
+                text: 'Показаны последние 500 заказов. Более старые скрыты — используйте поиск по коду или телефону.'
+            }));
+        }
     }
 
     async function viewOrder(orderCode) {
@@ -316,9 +331,11 @@
     // QR Scanner
     let html5QrCode = null;
     let isScanning = false;
+    let stopRequested = false; // запрошена остановка, пока камера ещё стартует
 
     async function startQrScanner() {
         if (isScanning) return;
+        stopRequested = false;
 
         const qrMessage = document.getElementById('qrMessage');
         qrMessage.textContent = 'Запуск камеры...';
@@ -335,6 +352,8 @@
             );
             isScanning = true;
             qrMessage.style.display = 'none';
+            // Если модалку закрыли, пока камера стартовала — гасим сразу
+            if (stopRequested) await stopQrScanner();
         } catch (err) {
             qrMessage.textContent = 'Не удалось запустить камеру. Проверьте разрешения браузера.';
             qrMessage.className = 'error-message';
@@ -344,9 +363,11 @@
     }
 
     async function stopQrScanner() {
+        // Помечаем намерение остановиться даже если start() ещё не завершился
+        stopRequested = true;
         if (html5QrCode && isScanning) {
             try { await html5QrCode.stop(); } catch (e) {}
-            html5QrCode.clear();
+            try { html5QrCode.clear(); } catch (e) {}
             isScanning = false;
         }
     }

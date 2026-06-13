@@ -128,6 +128,16 @@ async function apiRequest(endpoint, options = {}) {
         window.location.href = 'login.html';
         throw new Error('Не авторизован');
     }
+
+    // Самовосстановление при рассинхроне CSRF (например, cookie истёк/пересоздан):
+    // один раз обновляем токен и повторяем мутацию.
+    if (response.status === 403 && !options._csrfRetried) {
+        const data = await response.clone().json().catch(() => null);
+        if (data && typeof data.message === 'string' && /csrf/i.test(data.message)) {
+            await fetchCsrfToken();
+            return apiRequest(endpoint, Object.assign({}, options, { _csrfRetried: true }));
+        }
+    }
     return response;
 }
 

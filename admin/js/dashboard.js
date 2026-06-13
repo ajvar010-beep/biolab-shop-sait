@@ -23,7 +23,7 @@
     async function loadStats() {
         try {
             const [productsRes, ordersRes] = await Promise.all([
-                apiRequest('/products'),
+                apiRequest('/products?limit=200'),
                 apiRequest('/orders?limit=500')
             ]);
             const productsData = await productsRes.json();
@@ -31,7 +31,9 @@
             const products = Array.isArray(productsData) ? productsData : (productsData.products || []);
             const orders = Array.isArray(ordersData) ? ordersData : (ordersData.orders || []);
 
-            document.getElementById('totalProducts').textContent = String(products.length);
+            // totalProducts берём из total ответа (а не из длины страницы)
+            const productsTotal = (productsData && typeof productsData.total === 'number') ? productsData.total : products.length;
+            document.getElementById('totalProducts').textContent = String(productsTotal);
             document.getElementById('totalOrders').textContent = String(orders.length);
             document.getElementById('pendingOrders').textContent = String(orders.filter(o => o.status === 'pending').length);
             document.getElementById('completedOrders').textContent = String(orders.filter(o => o.status === 'completed').length);
@@ -39,7 +41,9 @@
             // Общая выручка (выданные заказы)
             const revenueEl = document.getElementById('totalRevenue');
             if (revenueEl) {
-              const revenue = orders.filter(o => o.status === 'completed').reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+              // Number() — totalAmount может прийти строкой из PG numeric
+              const revenue = orders.filter(o => o.status === 'completed')
+                .reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);
               revenueEl.textContent = revenue.toLocaleString('ru-RU') + ' ₽';
             }
 
@@ -76,8 +80,8 @@
             const tr = el('tr', {}, [
                 el('td', {}, [el('strong', { text: o.orderCode || '' })]),
                 el('td', { text: o.customerName || '' }),
-                el('td', { text: `${(o.items || []).length} шт.` }),
-                el('td', { text: `${o.totalAmount || 0} ₽` }),
+                el('td', { text: `${(o.items || []).reduce((s, it) => s + (Number(it.quantity) || 0), 0)} шт.` }),
+                el('td', { text: `${Number(o.totalAmount) || 0} ₽` }),
                 el('td', {}, [
                     el('span', {
                         class: `badge badge-${o.status}`,

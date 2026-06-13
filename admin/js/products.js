@@ -31,6 +31,30 @@
 
     const SIZE_TEXT = { normal: 'Обычная', wide: 'Широкая', large: 'Большая' };
 
+    // ISO-строка из БД → значение для <input type="datetime-local"> в ЛОКАЛЬНОМ времени.
+    function toLocalDatetimeInput(iso) {
+        if (!iso) return '';
+        const d = new Date(iso);
+        if (isNaN(d.getTime())) return '';
+        const off = d.getTimezoneOffset() * 60000;
+        return new Date(d.getTime() - off).toISOString().slice(0, 16);
+    }
+
+    // Действующая цена с учётом окна акции (зеркало логики витрины).
+    function effectivePrice(p) {
+        const base = parseInt(p.price, 10) || 0;
+        const sale = p.salePrice == null ? null : Number(p.salePrice);
+        if (sale == null || !Number.isFinite(sale) || sale <= 0 || sale >= base) {
+            return { price: base, oldPrice: null, onSale: false };
+        }
+        const now = Date.now();
+        const start = p.saleStart ? Date.parse(p.saleStart) : null;
+        const end = p.saleEnd ? Date.parse(p.saleEnd) : null;
+        if (start && now < start) return { price: base, oldPrice: null, onSale: false };
+        if (end && now > end) return { price: base, oldPrice: null, onSale: false };
+        return { price: Math.round(sale), oldPrice: base, onSale: true };
+    }
+
     async function loadCategories() {
         try {
             const res = await apiRequest('/categories');
@@ -43,7 +67,8 @@
 
     async function loadProducts() {
         try {
-            const res = await apiRequest('/products');
+            // limit=200 — иначе админка видит только первую страницу (50 товаров)
+            const res = await apiRequest('/products?limit=200');
             const data = await res.json();
             products = Array.isArray(data) ? data : (data.products || []);
             displayProducts(products);
@@ -115,19 +140,20 @@
 
             const stockColor = p.stock === 0 ? 'red' : (p.stock < 5 ? 'orange' : 'green');
 
-            // Цена с учётом акции
+            // Цена с учётом акции (считаем на клиенте — API не отдаёт isOnSale/currentPrice)
+            const pr = effectivePrice(p);
             let priceDisplay;
-            if (p.isOnSale) {
+            if (pr.onSale) {
                 priceDisplay = el('div', { style: { display: 'flex', alignItems: 'center', gap: '8px' } }, [
-                    el('span', { style: { textDecoration: 'line-through', color: '#999', fontSize: '12px' }, text: `${p.price} ₽` }),
-                    el('span', { style: { color: '#ff6b6b', fontWeight: 'bold' }, text: `${p.currentPrice} ₽` }),
+                    el('span', { style: { textDecoration: 'line-through', color: '#999', fontSize: '12px' }, text: `${pr.oldPrice} ₽` }),
+                    el('span', { style: { color: '#ff6b6b', fontWeight: 'bold' }, text: `${pr.price} ₽` }),
                     el('span', {
                         style: { background: '#ff6b6b', color: '#fff', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' },
-                        text: `-${Math.round((1 - p.currentPrice / p.price) * 100)}%`
+                        text: `-${Math.round((1 - pr.price / pr.oldPrice) * 100)}%`
                     })
                 ]);
             } else {
-                priceDisplay = el('span', { text: `${p.price} ₽` });
+                priceDisplay = el('span', { text: `${pr.price} ₽` });
             }
 
             const editBtn = el('button', {
@@ -187,8 +213,10 @@
         document.getElementById('description').value = product.description || '';
         document.getElementById('price').value = product.price ?? '';
         document.getElementById('salePrice').value = product.salePrice || '';
-        document.getElementById('saleStart').value = product.saleStart ? new Date(product.saleStart).toISOString().slice(0, 16) : '';
-        document.getElementById('saleEnd').value = product.saleEnd ? new Date(product.saleEnd).toISOString().slice(0, 16) : '';
+        // datetime-local показывает ЛОКАЛЬНОЕ время. toISOString() даёт UTC и сдвигал бы
+        // дату на величину часового пояса при каждом редактировании — конвертируем в локальное.
+        document.getElementById('saleStart').value = toLocalDatetimeInput(product.saleStart);
+        document.getElementById('saleEnd').value = toLocalDatetimeInput(product.saleEnd);
         document.getElementById('category').value = product.category || '';
         document.getElementById('stock').value = product.stock ?? '';
         document.getElementById('size').value = product.size || 'normal';
