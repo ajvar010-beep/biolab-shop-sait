@@ -244,6 +244,13 @@ function xmlEscape(s) {
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
 }
+// Нормализуем дату в формат W3C YYYY-MM-DD (требование sitemap).
+// PostgreSQL отдаёт updatedAt как объект Date, SQLite — как ISO-строку: оба валидны.
+function toSitemapDate(v) {
+  if (!v) return null;
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? null : d.toISOString().split('T')[0];
+}
 app.get('/sitemap.xml', async (req, res) => {
   try {
     const [products, categories] = await Promise.all([
@@ -257,7 +264,7 @@ app.get('/sitemap.xml', async (req, res) => {
       if (slug) urls.push({ loc: `${SITE_URL}/?category=${encodeURIComponent(slug)}`, changefreq: 'weekly', priority: '0.7', lastmod: today });
     }
     for (const p of products) {
-      const lastmod = p.updatedAt ? String(p.updatedAt).split('T')[0] : today;
+      const lastmod = toSitemapDate(p.updatedAt) || today;
       urls.push({ loc: `${SITE_URL}/?product=${encodeURIComponent(p._id)}`, changefreq: 'weekly', priority: '0.8', lastmod });
     }
     let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
