@@ -48,6 +48,26 @@
         <!-- Ботанический дизайн — грузится последним, переопределяет шаблон -->
         <link rel="stylesheet" href="assets/css/botanical.css" />
 	<link rel="canonical" href="https://biolab-shop-sait.onrender.com/" />
+
+		<!-- Микроразметка Schema.org: магазин + поиск по сайту.
+		     Статична (есть в HTML до JS) — её видят и Google, и Яндекс.
+		     Товары добавляются отдельным JSON-LD из shop.js после загрузки. -->
+		<script type="application/ld+json">
+		{
+			"@context": "https://schema.org",
+			"@type": "Store",
+			"name": "Биолаборатория",
+			"description": "Интернет-магазин растений для школьной биолаборатории. Саженцы и растения, выращенные в собственной теплице.",
+			"url": "https://biolab-shop-sait.onrender.com/",
+			"image": "https://biolab-shop-sait.onrender.com/favicon.svg",
+			"currenciesAccepted": "RUB",
+			"potentialAction": {
+				"@type": "SearchAction",
+				"target": "https://biolab-shop-sait.onrender.com/?search={search_term_string}",
+				"query-input": "required name=search_term_string"
+			}
+		}
+		</script>
 	</head>
 	<body class="is-preload">
 			<div id="wrapper">

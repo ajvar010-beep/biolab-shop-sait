@@ -1,6 +1,9 @@
 User-agent: *
 Allow: /
 
-# Блокируем админку от поисковиков
+# Блокируем админку и API от поисковиков
 Disallow: /admin/
 Disallow: /api/
+
+# Карта сайта (генерируется динамически из БД)
+Sitemap: https://biolab-shop-sait.onrender.com/sitemap.xml

@@ -236,10 +236,95 @@ async function loadProducts() {
       : (Array.isArray(data.products) ? data.products : []);
     populateCategoryFilters(allProducts);
     renderProducts(allProducts);
+    injectProductsJsonLd(allProducts);
+    applyUrlParams();
   } catch (error) {
     console.error('Ошибка:',	error);
     showError('Не удалось загрузить товары. Попробуйте обновить страницу.');
   }
+}
+
+// Микроразметка Schema.org (JSON-LD) для поисковиков (в первую очередь Google).
+// Поскольку каталог рендерится через JS, дублируем данные товаров в структурном
+// виде — это помогает поисковику понять, что это магазин с товарами, ценами и
+// наличием, и показывать расширенный сниппет (цена/наличие) в выдаче.
+function injectProductsJsonLd(products) {
+  try {
+    if (!Array.isArray(products) || !products.length) return;
+    const origin = window.location.origin;
+    const abs = (u) => {
+      if (!u) return undefined;
+      const first = Array.isArray(u) ? u[0] : u;
+      if (!first) return undefined;
+      return /^https?:\/\//.test(first) ? first : origin + (first.startsWith('/') ? '' : '/') + first;
+    };
+    const itemList = {
+      '@context': 'https://schema.org',
+      '@type': 'ItemList',
+      itemListElement: products.map((p, i) => {
+        const name = p.title || p.name || 'Товар';
+        const price = (p.salePrice != null && p.salePrice !== '') ? p.salePrice : p.price;
+        const product = {
+          '@type': 'Product',
+          name,
+          url: `${origin}/?product=${encodeURIComponent(p._id)}`
+        };
+        const img = abs(p.imageUrl || p.images);
+        if (img) product.image = img;
+        if (p.description) product.description = String(p.description).slice(0, 300);
+        if (price != null && price !== '') {
+          product.offers = {
+            '@type': 'Offer',
+            price: String(price),
+            priceCurrency: 'RUB',
+            availability: (Number(p.stock) > 0)
+              ? 'https://schema.org/InStock'
+              : 'https://schema.org/OutOfStock'
+          };
+        }
+        return { '@type': 'ListItem', position: i + 1, item: product };
+      })
+    };
+    const prev = document.getElementById('products-jsonld');
+    if (prev) prev.remove();
+    const tag = document.createElement('script');
+    tag.type = 'application/ld+json';
+    tag.id = 'products-jsonld';
+    tag.textContent = JSON.stringify(itemList);
+    document.head.appendChild(tag);
+  } catch (_) { /* микроразметка не критична — молча пропускаем */ }
+}
+
+// Применяем параметры из URL (?category=, ?search=, ?product=), чтобы ссылки
+// из sitemap, поиска и шаринга открывали нужную категорию/товар, а не главную.
+function applyUrlParams() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const cat = params.get('category');
+    const search = params.get('search');
+    const productId = params.get('product');
+
+    if (cat) {
+      activeCategory = cat;
+      const container = document.getElementById('categoryFilters');
+      if (container) {
+        container.querySelectorAll('.category-btn').forEach(b =>
+          b.classList.toggle('active', String(b.dataset.category || '').toLowerCase() === cat.toLowerCase())
+        );
+      }
+    }
+    if (search) {
+      activeSearch = search;
+      const input = document.getElementById('searchInput');
+      if (input) input.value = search;
+    }
+    if (cat || search) filterProducts();
+
+    if (productId) {
+      const idx = allProducts.findIndex(p => String(p._id) === String(productId));
+      if (idx >= 0) openProductModal(idx);
+    }
+  } catch (_) { /* некорректный URL — игнорируем */ }
 }
 
 // Заполняем кнопки категорий

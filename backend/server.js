@@ -235,6 +235,43 @@ app.use('/admin', express.static(path.join(ROOT, 'admin')));
 app.use('/favicon.svg', express.static(path.join(ROOT, 'favicon.svg')));
 app.use('/robots.txt', express.static(path.join(ROOT, 'robots.txt')));
 
+// 4a. Sitemap — динамический, всегда свежий из БД.
+// Надёжнее статического файла: на эфемерном диске Render файл не переживёт
+// рестарт и устаревает при изменении каталога. Здесь он генерится на лету.
+const SITE_URL = (process.env.SITE_URL || process.env.FRONTEND_URL || 'https://biolab-shop-sait.onrender.com').replace(/\/+$/, '');
+function xmlEscape(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+}
+app.get('/sitemap.xml', async (req, res) => {
+  try {
+    const [products, categories] = await Promise.all([
+      db.find('products').catch(() => []),
+      db.find('categories').catch(() => [])
+    ]);
+    const today = new Date().toISOString().split('T')[0];
+    const urls = [{ loc: `${SITE_URL}/`, changefreq: 'weekly', priority: '1.0', lastmod: today }];
+    for (const cat of categories) {
+      const slug = cat.slug || (cat.name ? String(cat.name).toLowerCase().replace(/\s+/g, '-') : null);
+      if (slug) urls.push({ loc: `${SITE_URL}/?category=${encodeURIComponent(slug)}`, changefreq: 'weekly', priority: '0.7', lastmod: today });
+    }
+    for (const p of products) {
+      const lastmod = p.updatedAt ? String(p.updatedAt).split('T')[0] : today;
+      urls.push({ loc: `${SITE_URL}/?product=${encodeURIComponent(p._id)}`, changefreq: 'weekly', priority: '0.8', lastmod });
+    }
+    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+    for (const u of urls) {
+      xml += `  <url>\n    <loc>${xmlEscape(u.loc)}</loc>\n    <lastmod>${u.lastmod}</lastmod>\n    <changefreq>${u.changefreq}</changefreq>\n    <priority>${u.priority}</priority>\n  </url>\n`;
+    }
+    xml += '</urlset>\n';
+    res.type('application/xml').send(xml);
+  } catch (e) {
+    logError('Sitemap', e);
+    res.status(500).type('text/plain').send('sitemap error');
+  }
+});
+
 // 5. Главная страница — явно из корня
 app.get('/', (req, res) => {
   res.sendFile(path.join(ROOT, 'index.html'));
