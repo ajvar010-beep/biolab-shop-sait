@@ -199,6 +199,10 @@ app.use('/api/settings', (req, res, next) => {
   return adminLimiter(req, res, next);
 });
 
+// Управление админами и журнал действий — все методы под adminLimiter (только для своих).
+app.use('/api/admins', adminLimiter);
+app.use('/api/audit', adminLimiter);
+
 // Автоперевод поиска — публичный, лимитируем (ходит во внешний сервис)
 const searchLimiter = process.env.NODE_ENV === 'test'
   ? (req, res, next) => next()
@@ -291,6 +295,8 @@ app.use('/api/orders', require('./routes/orders'));
 app.use('/api/categories', require('./routes/categories'));
 app.use('/api/settings', require('./routes/settings'));
 app.use('/api/search', require('./routes/search'));
+app.use('/api/admins', require('./routes/admins'));
+app.use('/api/audit', require('./routes/audit'));
 
 // Health-check — без раскрытия версии/типа БД наружу
 app.get('/api/health', (req, res) => {

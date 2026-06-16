@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Администраторы — Biolab Admin</title>
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+    <div class="admin-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>🌱 Biolab</h2>
+                <p id="adminUsername">Администратор</p>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html"><span aria-hidden="true">📊</span><span>Главная</span></a>
+                <a href="products.html"><span aria-hidden="true">🌿</span><span>Товары</span></a>
+                <a href="orders.html"><span aria-hidden="true">📦</span><span>Заказы</span></a>
+                <a href="categories.html" data-min-level="2"><span aria-hidden="true">📁</span><span>Категории</span></a>
+                <a href="settings.html" data-min-level="2"><span aria-hidden="true">⚙️</span><span>Настройки</span></a>
+                <a href="admins.html" class="active" data-min-level="2"><span aria-hidden="true">👥</span><span>Администраторы</span></a>
+                <a href="audit.html" data-min-level="2"><span aria-hidden="true">📜</span><span>История</span></a>
+                <a href="profile.html"><span aria-hidden="true">👤</span><span>Профиль</span></a>
+                <a href="#" id="logoutBtn"><span aria-hidden="true">🚪</span><span>Выход</span></a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="header">
+                <h1>Администраторы</h1>
+                <button class="btn btn-primary" id="addAdminBtn" data-min-level="3">+ Создать аккаунт</button>
+            </div>
+
+            <p style="color:var(--text-muted);margin-bottom:20px;">
+                Уровни: <strong>1 — обычный администратор</strong> (выкладывает товары, принимает и отклоняет заказы),
+                <strong>2 — менеджер</strong> (правит товары, категории, настройки, видит историю и управляет ур.1),
+                <strong>3 — владелец</strong> (создаёт аккаунты, меняет уровни, управляет всеми ниже).
+                Вы видите и можете управлять только аккаунтами ниже своего уровня.
+            </p>
+
+            <div class="card">
+                <div id="adminsContainer"><div class="loading">Загрузка...</div></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Модалка создания аккаунта (ур.3) -->
+    <div class="modal" id="adminModal" role="dialog" aria-modal="true" aria-labelledby="adminModalTitle">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="adminModalTitle">Создать аккаунт</h2>
+                <button type="button" class="close-modal" id="closeAdminModal" aria-label="Закрыть">&times;</button>
+            </div>
+            <form id="adminForm" autocomplete="off">
+                <div class="form-group">
+                    <label for="newUsername">Логин (3–32 символа, латиница/цифры/_/-)</label>
+                    <input type="text" id="newUsername" name="newUsername" autocomplete="off" maxlength="32">
+                </div>
+                <div class="form-group">
+                    <label for="newAdminPassword">Пароль (минимум 8 символов)</label>
+                    <input type="password" id="newAdminPassword" name="newAdminPassword" autocomplete="new-password" minlength="8">
+                </div>
+                <div class="form-group">
+                    <label for="newAdminLevel">Уровень</label>
+                    <select id="newAdminLevel" name="newAdminLevel" class="form-control"></select>
+                </div>
+                <div id="adminFormMessage" style="display:none;margin-bottom:15px;" role="alert" aria-live="polite"></div>
+                <div style="display:flex;gap:10px;justify-content:flex-end;">
+                    <button type="button" class="btn btn-secondary" id="cancelAdminBtn">Отмена</button>
+                    <button type="submit" class="btn btn-primary" id="submitAdminBtn">Создать</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/admins.js"></script>
+</body>
+</html>

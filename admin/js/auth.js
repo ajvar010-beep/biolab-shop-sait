@@ -17,6 +17,20 @@ function getUsername() {
     return localStorage.getItem('adminUsername') || 'Администратор';
 }
 
+// Уровень доступа: 1 — обычный админ, 2 — менеджер, 3 — владелец.
+// Источник правды — сервер (verify/login). Здесь это кэш для UX-гейтинга.
+function getLevel() {
+    const n = parseInt(localStorage.getItem('adminLevel'), 10);
+    return Number.isFinite(n) && n >= 1 && n <= 3 ? n : 1;
+}
+
+function setLevel(level) {
+    const n = parseInt(level, 10);
+    if (Number.isFinite(n) && n >= 1 && n <= 3) {
+        localStorage.setItem('adminLevel', String(n));
+    }
+}
+
 function setAuth(token, username) {
     localStorage.setItem('adminToken', token);
     if (username) localStorage.setItem('adminUsername', username);
@@ -25,6 +39,7 @@ function setAuth(token, username) {
 function clearAuth() {
     localStorage.removeItem('adminToken');
     localStorage.removeItem('adminUsername');
+    localStorage.removeItem('adminLevel');
     localStorage.removeItem('csrfToken');
 }
 
@@ -79,6 +94,9 @@ async function checkAuth() {
         if (data && data.admin && data.admin.username) {
             localStorage.setItem('adminUsername', data.admin.username);
         }
+        if (data && data.admin && data.admin.level) {
+            setLevel(data.admin.level);
+        }
         return true;
     } catch (_) {
         return false;
@@ -94,6 +112,31 @@ async function requireAuth() {
     }
     // Также получаем свежий CSRF-токен
     await fetchCsrfToken();
+    return true;
+}
+
+// Скрыть элементы, требующие уровень выше текущего.
+// Элемент помечается атрибутом data-min-level="2|3". Это ТОЛЬКО UX —
+// настоящую защиту обеспечивает сервер (requireLevel).
+function applyLevelGating(root = document) {
+    const level = getLevel();
+    const nodes = root.querySelectorAll('[data-min-level]');
+    nodes.forEach((node) => {
+        const min = parseInt(node.getAttribute('data-min-level'), 10) || 1;
+        if (level < min) {
+            node.style.display = 'none';
+            node.setAttribute('aria-hidden', 'true');
+        }
+    });
+}
+
+// Гард для страниц, требующих минимальный уровень. При нехватке — редирект на главную.
+async function requireLevelOrRedirect(minLevel) {
+    if (!(await requireAuth())) return false;
+    if (getLevel() < minLevel) {
+        window.location.href = 'index.html';
+        return false;
+    }
     return true;
 }
 
@@ -171,6 +214,8 @@ window.adminAuth = {
     API_URL,
     getToken,
     getUsername,
+    getLevel,
+    setLevel,
     setAuth,
     clearAuth,
     getCsrfToken,
@@ -178,5 +223,7 @@ window.adminAuth = {
     logout,
     checkAuth,
     requireAuth,
+    requireLevelOrRedirect,
+    applyLevelGating,
     apiRequest
 };

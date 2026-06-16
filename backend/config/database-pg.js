@@ -287,7 +287,14 @@ class PostgresDB {
       cancelreason: 'cancelReason',
       abouttext: 'aboutText',
       workinghours: 'workingHours',
-      tokenversion: 'tokenVersion'
+      tokenversion: 'tokenVersion',
+      // audit_log
+      actorid: 'actorId',
+      actorname: 'actorName',
+      actorlevel: 'actorLevel',
+      targettype: 'targetType',
+      targetid: 'targetId',
+      targetlabel: 'targetLabel'
     };
 
     // Маппим lowercase → camelCase и УДАЛЯЕМ исходный lowercase-ключ.
@@ -316,7 +323,7 @@ class PostgresDB {
 
   // Защита от SQL-инъекций в именах таблиц
   sanitizeTableName(name) {
-    const allowed = ['users', 'categories', 'products', 'orders', 'settings', '_migrations'];
+    const allowed = ['users', 'categories', 'products', 'orders', 'settings', 'audit_log', '_migrations'];
     if (!allowed.includes(name)) {
       throw new Error('Invalid table name: ' + name);
     }

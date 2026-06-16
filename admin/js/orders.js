@@ -1,11 +1,12 @@
 // Управление заказами
 (async function () {
     'use strict';
-    const { requireAuth, apiRequest, logout, getUsername } = window.adminAuth;
+    const { requireAuth, apiRequest, logout, getUsername, applyLevelGating } = window.adminAuth;
     const { el, clear, toast, confirmDialog, debounce, formatDateTime } = window.adminUI;
 
     if (!(await requireAuth())) return;
     document.getElementById('adminUsername').textContent = getUsername();
+    applyLevelGating();
 
     document.getElementById('logoutBtn').addEventListener('click', async (e) => {
         e.preventDefault();

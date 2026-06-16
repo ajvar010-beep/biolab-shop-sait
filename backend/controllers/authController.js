@@ -96,7 +96,7 @@ exports.login = async (req, res) => {
       message: 'Вход выполнен успешно',
       token,
       expiresIn: JWT_EXPIRES_IN,
-      admin: { id: admin._id, username: admin.username }
+      admin: { id: admin._id, username: admin.username, level: Number(admin.level) || 1 }
     });
   } catch (error) {
     console.error('Ошибка входа:', error.message);
@@ -107,7 +107,7 @@ exports.login = async (req, res) => {
 // Проверка токена
 exports.verify = async (req, res) => {
   try {
-    res.json({ admin: { id: req.adminId, username: req.admin.username } });
+    res.json({ admin: { id: req.adminId, username: req.admin.username, level: Number(req.admin.level) || 1 } });
   } catch (error) {
     console.error('Ошибка проверки токена:', error.message);
     res.status(500).json({ message: 'Ошибка сервера' });
@@ -140,6 +140,7 @@ exports.createDefaultAdmin = async (username, password) => {
       username,
       password: hashedPassword,
       role: 'admin',
+      level: 3,
       tokenVersion: 0
     });
     return true;
@@ -148,3 +149,8 @@ exports.createDefaultAdmin = async (username, password) => {
     return false;
   }
 };
+
+// Переиспользуется в adminController (создание/смена пароля управляемых аккаунтов)
+exports.validateUsername = validateUsername;
+exports.validatePassword = validatePassword;
+exports.BCRYPT_ROUNDS = BCRYPT_ROUNDS;

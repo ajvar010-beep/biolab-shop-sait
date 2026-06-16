@@ -2,6 +2,7 @@
  * Category Controller — поддерживает SQLite и PostgreSQL
  */
 const db = require('../config/database');
+const audit = require('../services/audit');
 
 function isString(v) { return typeof v === 'string'; }
 
@@ -82,6 +83,9 @@ exports.createCategory = async (req, res) => {
     };
 
     await db.insert('categories', category);
+    await audit.log(req, {
+      action: 'category.create', targetType: 'category', targetId: id, targetLabel: trimmedName
+    });
     res.status(201).json(category);
   } catch (error) {
     console.error('Ошибка создания категории:', error.message);
@@ -105,6 +109,9 @@ exports.deleteCategory = async (req, res) => {
     }
 
     await db.deleteOne('categories', { _id: req.params.id });
+    await audit.log(req, {
+      action: 'category.delete', targetType: 'category', targetId: req.params.id, targetLabel: category.name
+    });
     res.json({ message: 'Категория удалена' });
   } catch (error) {
     console.error('Ошибка удаления категории:', error.message);

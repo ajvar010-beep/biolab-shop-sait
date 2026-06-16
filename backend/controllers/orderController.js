@@ -4,6 +4,7 @@
 const crypto = require('crypto');
 const db = require('../config/database');
 const notifications = require('../services/notifications');
+const audit = require('../services/audit');
 
 function generateOrderCode() {
   const min = 100000000000;
@@ -324,6 +325,9 @@ exports.completeOrder = async (req, res) => {
     }
 
     notifications.notifyOrderCompleted(updated).catch(() => {});
+    await audit.log(req, {
+      action: 'order.complete', targetType: 'order', targetId: updated._id, targetLabel: updated.orderCode
+    });
     res.json({ message: 'Заказ выдан', order: updated });
   } catch (error) {
     console.error('Ошибка выдачи заказа:', error.message);
@@ -389,6 +393,10 @@ exports.cancelOrder = async (req, res) => {
     }
 
     notifications.notifyOrderCancelled(updated).catch(() => {});
+    await audit.log(req, {
+      action: 'order.cancel', targetType: 'order', targetId: updated._id, targetLabel: updated.orderCode,
+      details: reason ? { reason } : null
+    });
     res.json({ message: 'Заказ отменён, товары возвращены', order: updated });
   } catch (error) {
     console.error('Ошибка отмены заказа:', error.message);

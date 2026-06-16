@@ -23,6 +23,7 @@ function createTestDatabase() {
       username TEXT UNIQUE NOT NULL,
       password TEXT NOT NULL,
       role TEXT DEFAULT 'admin',
+      level INTEGER DEFAULT 1,
       tokenVersion INTEGER DEFAULT 0,
       createdAt TEXT DEFAULT CURRENT_TIMESTAMP
     )
@@ -105,6 +106,22 @@ function createTestDatabase() {
     )
   `);
 
+  // Журнал действий (audit log)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS audit_log (
+      _id TEXT PRIMARY KEY,
+      actorId TEXT,
+      actorName TEXT,
+      actorLevel INTEGER,
+      action TEXT NOT NULL,
+      targetType TEXT,
+      targetId TEXT,
+      targetLabel TEXT,
+      details TEXT,
+      createdAt TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   return db;
 }
 
@@ -122,6 +139,7 @@ async function createTestFixtures() {
     username: 'admin',
     password: hashedPassword,
     role: 'admin',
+    level: 3,
     tokenVersion: 0
   });
 

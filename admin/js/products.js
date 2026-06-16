@@ -1,11 +1,16 @@
 // Управление товарами
 (async function () {
     'use strict';
-    const { requireAuth, apiRequest, logout, getUsername } = window.adminAuth;
+    const { requireAuth, apiRequest, logout, getUsername, getLevel, applyLevelGating } = window.adminAuth;
     const { el, clear, safeImageUrl, toast, confirmDialog, debounce } = window.adminUI;
 
     if (!(await requireAuth())) return;
     document.getElementById('adminUsername').textContent = getUsername();
+    applyLevelGating();
+
+    // Редактировать/удалять товары может только менеджер (ур.2+). Обычный админ (ур.1)
+    // лишь выкладывает новые. Это UX-гейтинг; сервер всё равно проверяет уровень.
+    const canEdit = getLevel() >= 2;
 
     document.getElementById('logoutBtn').addEventListener('click', async (e) => {
         e.preventDefault();
@@ -172,6 +177,11 @@
             });
             delBtn.addEventListener('click', () => onDelete(p._id, p.title));
 
+            // Ур.1 кнопок правки/удаления не видит (и сервер их отклонит).
+            const actionButtons = canEdit
+                ? [editBtn, delBtn]
+                : [el('span', { style: { color: '#999' }, text: '—' })];
+
             const tr = el('tr', {}, [
                 imgCell,
                 el('td', {}, [el('strong', { text: p.title || '' })]),
@@ -182,7 +192,7 @@
                 ]),
                 el('td', { text: SIZE_TEXT[p.size] || p.size || 'Обычная' }),
                 el('td', {}, [
-                    el('div', { class: 'actions' }, [editBtn, delBtn])
+                    el('div', { class: 'actions' }, actionButtons)
                 ])
             ]);
             tbody.appendChild(tr);

@@ -1,12 +1,13 @@
 // Главная панель админки
 (async function () {
     'use strict';
-    const { requireAuth, apiRequest, logout, getUsername } = window.adminAuth;
+    const { requireAuth, apiRequest, logout, getUsername, applyLevelGating } = window.adminAuth;
     const { el, clear, safeImageUrl, toast, confirmDialog, formatDate } = window.adminUI;
 
     if (!(await requireAuth())) return;
 
     document.getElementById('adminUsername').textContent = getUsername();
+    applyLevelGating();
 
     document.getElementById('currentDate').textContent =
         new Date().toLocaleDateString('ru-RU', { year: 'numeric', month: 'long', day: 'numeric' });

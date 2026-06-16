@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const categoryController = require('../controllers/categoryController');
 const authMiddleware = require('../middleware/auth');
+const requireLevel = require('../middleware/requireLevel');
 const { csrfCheck } = require('../middleware/security');
 
 // Валидация ID — защита от path traversal и SQL injection
@@ -14,7 +15,8 @@ function validateId(req, res, next) {
 }
 
 router.get('/', categoryController.getAllCategories);
-router.post('/', csrfCheck, authMiddleware, categoryController.createCategory);
-router.delete('/:id', validateId, csrfCheck, authMiddleware, categoryController.deleteCategory);
+// Разделы каталога — менеджер (ур.2+).
+router.post('/', csrfCheck, authMiddleware, requireLevel(2), categoryController.createCategory);
+router.delete('/:id', validateId, csrfCheck, authMiddleware, requireLevel(2), categoryController.deleteCategory);
 
 module.exports = router;

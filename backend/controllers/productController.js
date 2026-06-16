@@ -6,6 +6,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs/promises');
 const storage = require('../services/storage');
+const audit = require('../services/audit');
 
 const ALLOWED_EXT = /\.(jpe?g|png|gif|webp)$/i;
 const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -251,6 +252,11 @@ exports.createProduct = async (req, res) => {
       try { data.images = JSON.parse(data.images); } catch (_) {}
     }
 
+    await audit.log(req, {
+      action: 'product.create', targetType: 'product', targetId: data._id, targetLabel: data.title,
+      details: { price: data.price, category: data.category }
+    });
+
     res.status(201).json(data);
   } catch (error) {
     await deleteUploadedFile(req.file);
@@ -308,6 +314,31 @@ exports.updateProduct = async (req, res) => {
       try { updated.images = JSON.parse(updated.images); } catch (_) { updated.images = []; }
     }
 
+    // Фиксируем, что именно изменилось (для журнала). Цену показываем отдельно —
+    // это самый частый и чувствительный кейс («изменил цену на апельсины»).
+    const changes = {};
+    if (data.price !== undefined && Number(data.price) !== Number(product.price)) {
+      changes.price = { from: Number(product.price), to: Number(data.price) };
+    }
+    if (data.salePrice !== undefined && Number(data.salePrice || 0) !== Number(product.salePrice || 0)) {
+      changes.salePrice = { from: product.salePrice ?? null, to: data.salePrice ?? null };
+    }
+    if (data.stock !== undefined && Number(data.stock) !== Number(product.stock)) {
+      changes.stock = { from: Number(product.stock), to: Number(data.stock) };
+    }
+    if (data.category !== undefined && data.category !== product.category) {
+      changes.category = { from: product.category, to: data.category };
+    }
+    if (data.title !== undefined && data.title !== product.title) changes.title = { from: product.title, to: data.title };
+    if (data.description !== undefined && data.description !== product.description) changes.description = true;
+    if (req.file) changes.image = true;
+
+    await audit.log(req, {
+      action: 'product.update', targetType: 'product', targetId: req.params.id,
+      targetLabel: updated.title || product.title,
+      details: changes
+    });
+
     res.json(updated);
   } catch (error) {
     await deleteUploadedFile(req.file);
@@ -325,6 +356,10 @@ exports.deleteProduct = async (req, res) => {
 
     // Удаляем картинку с диска
     if (product.imageUrl) await deleteOldImage(product.imageUrl);
+
+    await audit.log(req, {
+      action: 'product.delete', targetType: 'product', targetId: req.params.id, targetLabel: product.title
+    });
 
     res.json({ message: 'Товар удалён' });
   } catch (error) {

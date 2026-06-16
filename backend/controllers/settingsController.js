@@ -2,6 +2,7 @@
  * Settings Controller — поддерживает SQLite и PostgreSQL
  */
 const db = require('../config/database');
+const audit = require('../services/audit');
 
 const ALLOWED_PLATFORMS = ['vk', 'telegram', 'whatsapp', 'instagram', 'facebook', 'youtube', 'tiktok', 'odnoklassniki', 'website', 'email', 'phone', 'other'];
 
@@ -152,6 +153,10 @@ exports.updateSettings = async (req, res) => {
     };
 
     await db.updateOne('settings', { _id: 'main' }, update);
+
+    await audit.log(req, {
+      action: 'settings.update', targetType: 'settings', targetId: 'main', targetLabel: 'Настройки магазина'
+    });
 
     res.json({
       message: 'Настройки сохранены',

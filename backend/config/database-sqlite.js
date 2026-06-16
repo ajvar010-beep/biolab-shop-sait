@@ -215,7 +215,7 @@ class SQLiteDB {
   }
 
   sanitizeTableName(name) {
-    const allowed = ['users', 'categories', 'products', 'orders', 'settings', '_migrations'];
+    const allowed = ['users', 'categories', 'products', 'orders', 'settings', 'audit_log', '_migrations'];
     if (!allowed.includes(name)) {
       throw new Error('Invalid table name: ' + name);
     }

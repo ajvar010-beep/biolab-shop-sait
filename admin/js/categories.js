@@ -1,11 +1,13 @@
 // Управление категориями
 (async function () {
     'use strict';
-    const { requireAuth, apiRequest, logout, getUsername } = window.adminAuth;
+    const { requireLevelOrRedirect, apiRequest, logout, getUsername, applyLevelGating } = window.adminAuth;
     const { el, clear, toast, confirmDialog } = window.adminUI;
 
-    if (!(await requireAuth())) return;
+    // Управление категориями — только менеджер (ур.2+). Ур.1 редиректим на главную.
+    if (!(await requireLevelOrRedirect(2))) return;
     document.getElementById('adminUsername').textContent = getUsername();
+    applyLevelGating();
 
     document.getElementById('logoutBtn').addEventListener('click', async (e) => {
         e.preventDefault();

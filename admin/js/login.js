@@ -2,7 +2,7 @@
 (function () {
     'use strict';
 
-    const { setAuth, getToken, API_URL, fetchCsrfToken, getToken: _getToken } = window.adminAuth;
+    const { setAuth, getToken, API_URL, fetchCsrfToken, setLevel, getToken: _getToken } = window.adminAuth;
 
     // Если уже авторизован — сразу на главную
     if (getToken()) {
@@ -44,6 +44,7 @@
 
             if (response.ok && data && data.token) {
                 setAuth(data.token, data.admin && data.admin.username || username);
+                if (data.admin && data.admin.level) setLevel(data.admin.level);
                 // После логина обновляем CSRF-токен
                 await fetchCsrfToken();
                 window.location.href = 'index.html';

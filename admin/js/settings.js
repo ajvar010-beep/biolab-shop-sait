@@ -1,12 +1,14 @@
 // admin/js/settings.js — управление настройками сайта
 
 (async function () {
-  const ok = await window.adminAuth.requireAuth();
+  // Настройки магазина — только менеджер (ур.2+). Ур.1 редиректим на главную.
+  const ok = await window.adminAuth.requireLevelOrRedirect(2);
   if (!ok) return;
 
   const username = window.adminAuth.getUsername();
   const usernameEl = document.getElementById('adminUsername');
   if (usernameEl) usernameEl.textContent = username;
+  window.adminAuth.applyLevelGating();
 
   const logoutBtn = document.getElementById('logoutBtn');
   if (logoutBtn) {
