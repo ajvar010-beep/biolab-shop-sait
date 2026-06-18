@@ -11,6 +11,19 @@ const audit = require('../services/audit');
 const ALLOWED_EXT = /\.(jpe?g|png|gif|webp)$/i;
 const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
+// Проверка РЕАЛЬНОГО типа файла по «магическим байтам». Имя и MIME от клиента
+// можно подделать, поэтому доверяем только содержимому. Возвращает {mime, ext} или null.
+function sniffImageType(buf) {
+  if (!Buffer.isBuffer(buf) || buf.length < 12) return null;
+  if (buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF) return { mime: 'image/jpeg', ext: '.jpg' };
+  if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47 &&
+      buf[4] === 0x0D && buf[5] === 0x0A && buf[6] === 0x1A && buf[7] === 0x0A) return { mime: 'image/png', ext: '.png' };
+  if (buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x38) return { mime: 'image/gif', ext: '.gif' };
+  if (buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46 &&
+      buf[8] === 0x57 && buf[9] === 0x45 && buf[10] === 0x42 && buf[11] === 0x50) return { mime: 'image/webp', ext: '.webp' };
+  return null;
+}
+
 // Multer хранит файл в памяти (потом передаём в storage)
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -235,7 +248,12 @@ exports.createProduct = async (req, res) => {
     }
 
     if (req.file) {
-      const result = await storage.uploadFile(req.file.buffer, req.file.originalname, req.file.mimetype);
+      // Доверяем содержимому, а не заголовкам клиента: проверяем магические байты
+      const sniffed = sniffImageType(req.file.buffer);
+      if (!sniffed) {
+        return res.status(400).json({ message: 'Файл не является изображением (JPG/PNG/GIF/WebP)' });
+      }
+      const result = await storage.uploadFile(req.file.buffer, `upload${sniffed.ext}`, sniffed.mime);
       data.imageUrl = result.url;
     } else {
       data.imageUrl = '';
@@ -295,7 +313,12 @@ exports.updateProduct = async (req, res) => {
 
     const oldImageUrl = product.imageUrl;
     if (req.file) {
-      const result = await storage.uploadFile(req.file.buffer, req.file.originalname, req.file.mimetype);
+      // Проверяем магические байты; имя/MIME клиента не доверяем
+      const sniffed = sniffImageType(req.file.buffer);
+      if (!sniffed) {
+        return res.status(400).json({ message: 'Файл не является изображением (JPG/PNG/GIF/WebP)' });
+      }
+      const result = await storage.uploadFile(req.file.buffer, `upload${sniffed.ext}`, sniffed.mime);
       data.imageUrl = result.url;
     }
 

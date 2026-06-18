@@ -38,7 +38,8 @@ function googleTranslate(text, to = 'ru') {
 }
 
 exports.translate = async (req, res) => {
-  const q = String(req.query.q || '').trim().slice(0, 120);
+  // Убираем управляющие символы (0x00–0x1F, 0x7F), затем ограничиваем длину
+  const q = String(req.query.q || '').replace(/[\x00-\x1F\x7F]/g, '').trim().slice(0, 120);
   if (q.length < 2) return res.json({ text: '' });
 
   const key = q.toLowerCase();

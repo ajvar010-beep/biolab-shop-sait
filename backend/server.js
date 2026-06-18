@@ -30,6 +30,9 @@ function assertEnv() {
   if (process.env.NODE_ENV === 'production' && !process.env.ADMIN_PASSWORD) {
     console.warn('⚠️ ADMIN_PASSWORD не задан — дефолтный админ не будет создан (существующий в БД работает)');
   }
+  if (process.env.NODE_ENV === 'production' && !process.env.HCAPTCHA_SECRET) {
+    console.warn('⚠️ HCAPTCHA_SECRET не задан — публичная форма заказа БЕЗ защиты от ботов. Задайте секрет в окружении.');
+  }
 }
 assertEnv();
 

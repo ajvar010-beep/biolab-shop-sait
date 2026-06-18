@@ -78,6 +78,7 @@ class PostgresDB {
   // иначе null уходит в БД как строка 'null' и ломает числовые/timestamp-колонки.
   _serialize(v) {
     if (v === null || v === undefined) return null;
+    if (typeof v === 'boolean') return v ? 1 : 0;
     if (v instanceof Date) return v.toISOString();
     if (typeof v === 'object') return JSON.stringify(v);
     return v;

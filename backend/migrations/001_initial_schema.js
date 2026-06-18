@@ -5,9 +5,9 @@ module.exports = {
   id: 1,
   name: '001_initial_schema',
 
-  up(db) {
+  async up(db) {
     // Пользователи (админы)
-    db.runMigration(`
+    await db.runMigration(`
       CREATE TABLE IF NOT EXISTS users (
         _id TEXT PRIMARY KEY,
         username TEXT UNIQUE NOT NULL,
@@ -19,7 +19,7 @@ module.exports = {
     `);
 
     // Категории
-    db.runMigration(`
+    await db.runMigration(`
       CREATE TABLE IF NOT EXISTS categories (
         _id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
@@ -31,7 +31,7 @@ module.exports = {
     `);
 
     // Товары
-    db.runMigration(`
+    await db.runMigration(`
       CREATE TABLE IF NOT EXISTS products (
         _id TEXT PRIMARY KEY,
         title TEXT NOT NULL,
@@ -52,7 +52,7 @@ module.exports = {
     `);
 
     // Заказы
-    db.runMigration(`
+    await db.runMigration(`
       CREATE TABLE IF NOT EXISTS orders (
         _id TEXT PRIMARY KEY,
         orderCode TEXT UNIQUE NOT NULL,
@@ -73,7 +73,7 @@ module.exports = {
     `);
 
     // Настройки (singleton)
-    db.runMigration(`
+    await db.runMigration(`
       CREATE TABLE IF NOT EXISTS settings (
         _id TEXT PRIMARY KEY DEFAULT 'main',
         email TEXT DEFAULT '',

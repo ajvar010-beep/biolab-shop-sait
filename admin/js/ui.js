@@ -21,8 +21,12 @@
         for (const [sk, sv] of Object.entries(v)) {
           if (sv != null) node.style[sk] = String(sv);
         }
-      } else if (k.startsWith('on') && typeof v === 'function') {
-        node.addEventListener(k.slice(2).toLowerCase(), v);
+      } else if (k.startsWith('on')) {
+        // только функции-обработчики; строковые on*-атрибуты игнорируем (защита от XSS)
+        if (typeof v === 'function') node.addEventListener(k.slice(2).toLowerCase(), v);
+      } else if (/^(href|src|xlink:href|formaction|action)$/i.test(k)) {
+        // блокируем javascript:/vbscript:/data: в URL-атрибутах
+        if (!/^\s*(javascript|vbscript|data):/i.test(String(v))) node.setAttribute(k, String(v));
       } else {
         node.setAttribute(k, String(v));
       }

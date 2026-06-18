@@ -109,29 +109,6 @@ const orderLookupLimiter = process.env.NODE_ENV === 'test'
   'Слишком много запросов поиска заказа'
 );
 
-/**
- * Минимальная Origin-проверка для не-GET запросов: дополнительная защита от CSRF
- * поверх того, что мы храним JWT в localStorage и шлём его явно (не cookie).
- * Если Origin отсутствует (curl, Postman) и нет cookies — пропускаем (это не браузер).
- */
-function checkOrigin(allowedOrigins) {
-  return (req, res, next) => {
-    if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') return next();
-
-    const origin = req.get('Origin') || req.get('Referer');
-    // Если нет Origin и нет сессионного cookie (adminToken) — это curl/Postman, пропускаем.
-    // CSRF-cookie (csrf_token) шлёт и curl, поэтому проверяем именно сессию.
-    const hasSession = req.cookies && !!req.cookies['adminToken'];
-    if (!origin && !hasSession) return next();
-
-    if (!origin) return res.status(403).json({ message: 'Origin не указан' });
-
-    const ok = allowedOrigins.some((o) => origin === o || origin.startsWith(o + '/'));
-    if (!ok) return res.status(403).json({ message: 'Origin не разрешён' });
-    next();
-  };
-}
-
 module.exports = {
   csrfTokenIssue,
   csrfCheck,
@@ -139,6 +116,5 @@ module.exports = {
   orderLimiter,
   adminLimiter,
   orderLookupLimiter,
-  checkOrigin,
   createRateLimiter
 };

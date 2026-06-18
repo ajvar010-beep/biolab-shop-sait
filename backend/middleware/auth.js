@@ -12,7 +12,7 @@ const authMiddleware = async (req, res, next) => {
       return res.status(401).json({ message: 'Доступ запрещен. Токен не предоставлен.' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
 
     if (typeof decoded.adminId !== 'string') {
       return res.status(401).json({ message: 'Недействительный токен' });

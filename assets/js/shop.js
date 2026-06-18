@@ -74,7 +74,11 @@ function el(tag, opts = {}, ...children) {
   if (opts.text != null) node.textContent = String(opts.text);
   if (opts.attrs) {
     for (const [k, v] of Object.entries(opts.attrs)) {
-      if (v != null) node.setAttribute(k, String(v));
+      if (v == null) continue;
+      if (/^on/i.test(k)) continue; // строковые обработчики событий не ставим (XSS)
+      const val = String(v);
+      if (/^(href|src|xlink:href|formaction|action)$/i.test(k) && /^\s*(javascript|vbscript|data):/i.test(val)) continue;
+      node.setAttribute(k, val);
     }
   }
   if (opts.style) {

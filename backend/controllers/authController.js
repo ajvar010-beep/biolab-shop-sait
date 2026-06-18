@@ -89,7 +89,7 @@ exports.login = async (req, res) => {
         tv: admin.tokenVersion || 0
       },
       process.env.JWT_SECRET,
-      { expiresIn: JWT_EXPIRES_IN }
+      { expiresIn: JWT_EXPIRES_IN, algorithm: 'HS256' }
     );
 
     res.json({

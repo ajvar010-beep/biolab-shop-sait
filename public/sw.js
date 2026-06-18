@@ -2,8 +2,8 @@
  * Service Worker для Biolab Shop
  * Cache-first для статики, network-first для API
  */
-const CACHE_NAME = 'biolab-v11';
-const STATIC_CACHE = 'biolab-static-v11';
+const CACHE_NAME = 'biolab-v12';
+const STATIC_CACHE = 'biolab-static-v12';
 const OFFLINE_URL = '/offline.html';
 
 // Файлы для кэширования при установке.
@@ -113,7 +113,8 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(event.request)
         .then(response => {
-          if (response.ok) {
+          // HTML админки (страницы за авторизацией) не кэшируем
+          if (response.ok && !url.pathname.startsWith('/admin/')) {
             const clone = response.clone();
             caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
           }
